@@ -3,28 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WassersteinGrad · NeurIPS 2026</title>
+<title>WassersteinGrad — Explaining Dynamic Physical Field Predictions</title>
 
-<meta name="description" content="WassersteinGrad (NeurIPS 2026). Gradient explanations of weather forecasts can move under small perturbations; averaging them pointwise blurs the structure, while Wasserstein averaging preserves their spatial geometry.">
+<meta name="description" content="Input noise does not blur gradient attributions on weather fields — it moves them. WassersteinGrad replaces SmoothGrad's pointwise average with an entropic Wasserstein barycenter to recover a geometric consensus of displaced explanations.">
 <meta name="author" content="Younes Essafouri, Laure Raynaud, Luciano Drozda, Laurent Risser">
-<meta name="keywords" content="explainable AI, XAI, weather forecasting, optimal transport, Wasserstein barycenter, SmoothGrad, attribution, autoregressive forecasting, AROME, TITAN, NeurIPS 2026">
-<meta name="theme-color" content="#f5f2ea">
+<meta name="keywords" content="explainable AI, XAI, weather forecasting, optimal transport, Wasserstein barycenter, SmoothGrad, attribution, autoregressive forecasting, AROME, TITAN">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="WassersteinGrad: Explaining Dynamic Physical Field Predictions (NeurIPS 2026)">
-<meta property="og:description" content="Small perturbations don't blur a weather model's gradient explanation. They move it. WassersteinGrad averages explanations with optimal transport instead of pixel by pixel.">
+<meta property="og:title" content="WassersteinGrad — Explaining Dynamic Physical Field Predictions">
+<meta property="og:description" content="Gradient explanations of weather models don't get noisier under perturbation — they get displaced. WassersteinGrad averages them geometrically instead of pointwise.">
 <meta property="og:image" content="assets/figures/map-wgbary-t1.webp">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="WassersteinGrad (NeurIPS 2026)">
-<meta name="twitter:description" content="Small perturbations don't blur a weather model's gradient explanation. They move it.">
+<meta name="twitter:title" content="WassersteinGrad — Explaining Dynamic Physical Field Predictions">
+<meta name="twitter:description" content="Gradient explanations of weather models don't get noisier under perturbation — they get displaced.">
 <meta name="twitter:image" content="assets/figures/map-wgbary-t1.webp">
 
 <link rel="canonical" href="https://younesessafouri.github.io/WassersteinGrad/">
-<link rel="preload" href="assets/fonts/newsreader-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="assets/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/style.css?v=20260924">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f5f2ea'/%3E%3Ccircle cx='16' cy='16' r='8.5' fill='none' stroke='%232344d4' stroke-width='3'/%3E%3C/svg%3E">
-<script>document.documentElement.classList.add("js");</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;550;600;650;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="assets/css/style.css">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ffffff'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23a4232b' stroke-width='4'/%3E%3C/svg%3E">
 
 <script type="application/ld+json">
 {
@@ -39,8 +40,7 @@
   ],
   "identifier": "arXiv:2604.22580",
   "datePublished": "2026-04-24",
-  "creativeWorkStatus": "Accepted at NeurIPS 2026",
-  "isPartOf": {"@type": "PublicationEvent", "name": "Advances in Neural Information Processing Systems (NeurIPS 2026)"},
+  "creativeWorkStatus": "Preprint. Under review.",
   "abstract": "Stochastic input perturbations do not induce stationary amplitude noise in attribution maps of dynamic physical fields, but cause a geometric displacement of the attributions. WassersteinGrad extracts a geometric consensus of perturbed attribution maps by computing their entropic Wasserstein barycenter."
 }
 </script>
@@ -49,678 +49,747 @@
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 
-<header class="nav">
-  <div class="wrap nav-in">
-    <a class="nav-brand" href="#top">WassersteinGrad<span>NeurIPS 2026</span></a>
-    <nav aria-label="Sections">
-      <ul class="nav-links">
-        <li><a href="#problem"><span>01</span>Problem</a></li>
-        <li><a href="#observation"><span>02</span>Observation</a></li>
-        <li><a href="#idea"><span>03</span>Idea</a></li>
-        <li><a href="#method"><span>04</span>Method</a></li>
-        <li><a href="#results"><span>05</span>Results</a></li>
-        <li><a href="#cite"><span>06</span>Cite</a></li>
-      </ul>
-    </nav>
-    <a class="nav-paper" href="https://arxiv.org/pdf/2604.22580">Paper</a>
+<nav class="nav" id="nav">
+  <div class="wrap">
+    <a class="nav-brand" href="#top">Wasserstein<span>Grad</span></a>
+    <div class="nav-links">
+      <a href="#problem">Problem</a>
+      <a href="#failure">Failure mode</a>
+      <a href="#idea">Idea</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#meaning">Interpretation</a>
+      <a href="#cite">Cite</a>
+    </div>
   </div>
-</header>
+</nav>
 
 <main id="main">
 
-<!-- =================================================================== HERO -->
-<section class="hero" id="top" aria-labelledby="title">
-  <div class="wrap grid">
-    <p class="venue label"><b>NeurIPS 2026</b> · Accepted</p>
-    <h1 class="title" id="title">Explanation of Dynamic Physical Field Predictions using <em>WassersteinGrad</em></h1>
-    <p class="subtitle">Application to Autoregressive Weather Forecasting</p>
+<!-- ====================================================== HERO ============ -->
+<header class="hero" id="top">
+  <div class="wrap">
+    <p class="venue">Preprint · Under review · arXiv:2604.22580</p>
 
-    <div class="byline">
-      <ul class="authors">
-        <li>Younes Essafouri<sup>1</sup></li>
-        <li>Laure Raynaud<sup>2</sup></li>
-        <li>Luciano Drozda<sup>3</sup></li>
-        <li>Laurent Risser<sup>1</sup></li>
-      </ul>
-      <ul class="affils">
-        <li><sup>1</sup>Univ. Toulouse, INSA Toulouse, CNRS UMR 5219, IMT, Toulouse, France</li>
-        <li><sup>2</sup>Météo-France, CNRS, Univ. Toulouse, CNRM, Toulouse, France</li>
-        <li><sup>3</sup>Cerfacs, CNRS/Cerfacs/IRD, CECI, Toulouse, France</li>
-      </ul>
-    </div>
+    <h1>Explanation of Dynamic Physical Field Predictions using <span class="wg">WassersteinGrad</span></h1>
+    <p class="hero-sub">Application to autoregressive weather forecasting.</p>
 
-    <ul class="links hero-links" aria-label="Paper resources">
-      <li><a href="https://arxiv.org/pdf/2604.22580">Paper</a></li>
-      <li><a href="https://github.com/meteofrance/py4cast">Code</a></li>
-      <li><a class="to-bib" href="#cite">BibTeX</a></li>
+    <ul class="authors">
+      <li>Younes Essafouri<sup>1</sup></li>
+      <li>Laure Raynaud<sup>2</sup></li>
+      <li>Luciano Drozda<sup>3</sup></li>
+      <li>Laurent Risser<sup>1</sup></li>
+    </ul>
+    <ul class="affils">
+      <li><sup>1</sup>Univ. Toulouse, INSA Toulouse, CNRS UMR 5219, IMT, Toulouse, France</li>
+      <li><sup>2</sup>Météo-France, CNRS, Univ. Toulouse, CNRM, Toulouse, France</li>
+      <li><sup>3</sup>Cerfacs, CNRS/Cerfacs/IRD, CECI, Toulouse, France</li>
     </ul>
 
-    <figure class="hero-plate" aria-labelledby="hero-cap">
-      <div class="duo">
-        <div class="duo-cell">
-          <p class="duo-head"><span class="duo-name">SmoothGrad</span><span class="duo-how">pointwise mean</span></p>
-          <div class="map-frame">
-            <img class="map" src="assets/figures/map-smoothgrad-t1.webp" data-src-t1="assets/figures/map-smoothgrad-t1.webp" data-src-t5="assets/figures/map-smoothgrad-t5.webp" width="660" height="526" decoding="async" fetchpriority="high"
-                 alt="SmoothGrad explanation over France: fragmented, speckled red and blue patches around the Paris target, with no single region.">
-            <span class="roi-note" aria-hidden="true">rain over Paris</span>
-          </div>
-          <p class="scale scale-div"><span>−1</span><i aria-hidden="true"></i><span>+1</span></p>
-        </div>
-        <div class="duo-cell is-wg">
-          <p class="duo-head"><span class="duo-name">WassersteinGrad</span><span class="duo-how">Wasserstein barycenter</span></p>
-          <div class="map-frame">
-            <img class="map" src="assets/figures/map-wgbary-t1.webp" data-src-t1="assets/figures/map-wgbary-t1.webp" data-src-t5="assets/figures/map-wgbary-t5.webp" width="660" height="526" decoding="async" fetchpriority="high"
-                 alt="WassersteinGrad explanation of the same forecast: one smooth, coherent region of influence next to the Paris target.">
-          </div>
-          <p class="scale scale-seq"><span>0</span><i aria-hidden="true"></i><span>1</span></p>
-        </div>
-      </div>
-      <div class="plate-foot">
+    <div class="btn-row">
+      <a class="btn btn-primary" href="https://arxiv.org/abs/2604.22580">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>
+        Paper (PDF)
+      </a>
+      <a class="btn" href="https://arxiv.org/abs/2604.22580">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        arXiv
+      </a>
+      <a class="btn" href="https://github.com/meteofrance/py4cast">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.8 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.2-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.5 4.7 18.5 5 18.5 5c.6 1.6.2 2.8.1 3.1.8.9 1.2 1.9 1.2 3.2 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6 4.6-1.5 7.8-5.8 7.8-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+        py4cast
+      </a>
+      <a class="btn" href="https://huggingface.co/datasets/meteofrance/titan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+        TITAN dataset
+      </a>
+      <a class="btn" href="#cite">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7H6a2 2 0 0 0-2 2v3c0 3-1 4-1 4h5s-1-1-1-4V7zM19 7h-3a2 2 0 0 0-2 2v3c0 3-1 4-1 4h5s-1-1-1-4V7z"/></svg>
+        BibTeX
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ==================================================== TEASER ============ -->
+<section class="teaser" aria-labelledby="teaser-h">
+  <div class="wrap">
+    <div class="teaser-frame" data-reveal>
+      <div class="teaser-bar">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="teaser-h">Which upstream winds drove the rain over Paris?</span>
+        <span class="spacer"></span>
         <div class="seg" role="group" aria-label="Forecast lead time">
-          <button type="button" data-lead="t1" aria-pressed="true">t&nbsp;+&nbsp;1</button>
-          <button type="button" data-lead="t5" aria-pressed="false">t&nbsp;+&nbsp;5</button>
-        </div>
-        <figcaption id="hero-cap"><span class="fig-n">Paper · Fig. 2</span>Which winds at 250&nbsp;hPa made the model forecast rain inside the black box over Paris? The same forecast explained two ways, from perturbed gradients averaged pixel by pixel (left) or in Wasserstein space (right). <span class="aside">Lead time <span data-lead-text data-lead-text-t1="t + 1, one step" data-lead-text-t5="t + 5, five autoregressive steps">t + 1, one step</span>.</span></figcaption>
-      </div>
-    </figure>
-  </div>
-</section>
-
-<!-- ================================================================= THESIS -->
-<section class="thesis" aria-labelledby="thesis-k">
-  <div class="wrap grid">
-    <h2 class="label thesis-k" id="thesis-k">The paper in one sentence</h2>
-    <p class="thesis-s">
-      <a href="#problem">Gradient explanations of weather forecasts<sup>01</sup></a>
-      <a href="#observation">can <em class="w-move">move</em> under small perturbations<sup>02</sup></a>;
-      <a href="#idea">averaging them pointwise <em class="w-blur">blurs</em> the structure<sup>03</sup></a>,
-      <a href="#method">while Wasserstein averaging <em class="w-keep">preserves</em> their spatial geometry<sup>04</sup></a>.
-    </p>
-  </div>
-</section>
-
-<!-- ============================================================ 01 PROBLEM -->
-<section class="sect" id="problem" aria-labelledby="problem-h">
-  <div class="wrap grid">
-    <p class="sect-mark" data-n="01">The problem</p>
-    <h2 class="statement" id="problem-h">Averaging explanations pixel by pixel assumes they <em>stay in place.</em></h2>
-
-    <div class="col-text">
-      <p>To explain a forecast, pick a target, such as the rain inside a box over Paris five autoregressive steps ahead, and differentiate it with respect to one input field, here the zonal wind at 250&nbsp;hPa. The gradient <span class="m">G</span> is itself a map of where in today's atmosphere the forecast is sensitive.</p>
-    </div>
-
-    <figure class="pipe-fig" data-reveal>
-      <div class="pipe-scroll" tabindex="0" role="group" aria-label="Figure, scrollable on small screens">
-        <div class="pipe-inner">
-          <ol class="pipe-steps" aria-hidden="true">
-            <li><span class="n">Input</span><span class="d">zonal wind · 250 hPa · t</span></li>
-            <li><span class="n">Forecast</span><span class="d">rain at t + 5 · target □</span></li>
-            <li><span class="n">Explanation</span><span class="d">G = ∂ target / ∂ input</span></li>
-          </ol>
-          <img class="mult" src="assets/figures/attribution-pipeline.webp" width="1395" height="380" loading="lazy" decoding="async"
-               alt="Three maps of France. Left: zonal wind at 250 hPa at time t. Middle: the model's precipitation forecast five steps later, with a small target box over Paris. Right: the gradient of the rain in that box with respect to the input wind, a speckle of red and blue values west of the target.">
+          <button type="button" data-lead="t1" aria-pressed="true">t + 1<span class="seg-long">&nbsp;·&nbsp; one step</span></button>
+          <button type="button" data-lead="t5" aria-pressed="false">t + 5<span class="seg-long">&nbsp;·&nbsp; autoregressive</span></button>
         </div>
       </div>
-      <figcaption><span class="fig-n">Paper · Fig. 1b</span>A local explanation. The scalar target is the mean rain over the box <span class="m">ℬ</span>, and gradients flow back through every autoregressive step of the model.</figcaption>
-    </figure>
 
-    <div class="col-text col-text--right">
-      <p>A single gradient of a deep network is rough; it says as much about the network's local jaggedness as about the atmosphere. The standard remedy, <strong>SmoothGrad</strong>, perturbs the input <span class="m">N</span> times and averages the resulting maps, one pixel at a time:</p>
-      <p class="eq eq-inline"><span class="m">G</span><sub class="m-sub">SG</sub> <span class="m-op">=</span> <span class="m-frac"><span>1</span><span><i class="m">N</i></span></span> <span class="m-big">∑</span><sub class="m-sub"><i>i</i></sub> <span class="m">G</span>(<span class="m">x</span> + <span class="m">ε<sub>i</sub></span>)</p>
-      <p>That average carries a hidden assumption about what the perturbation does to the map.</p>
+      <div class="map-grid" id="teaser-grid">
+        <figure class="map-cell">
+          <h4>BaseGrad</h4>
+          <p class="verdict">Scattered, high-frequency noise.</p>
+          <img src="assets/figures/map-basegrad-t1.webp" alt="BaseGrad attribution map over France: sparse, speckled red and blue pixels with no coherent structure." width="660" height="526" data-map="basegrad" loading="eager" decoding="async">
+        </figure>
+        <figure class="map-cell">
+          <h4>SmoothGrad</h4>
+          <p class="verdict">Less variance, still spatially fragmented.</p>
+          <img src="assets/figures/map-smoothgrad-t1.webp" alt="SmoothGrad attribution map over France: reduced speckle but still fragmented into disconnected patches." width="660" height="526" data-map="smoothgrad" loading="eager" decoding="async">
+        </figure>
+        <figure class="map-cell is-ours">
+          <h4>WG<sub>Bary</sub> <span class="ours-tag">Ours</span></h4>
+          <p class="verdict">One coherent region of influence.</p>
+          <img src="assets/figures/map-wgbary-t1.webp" alt="WassersteinGrad barycenter attribution map: a single smooth, geographically coherent region of influence over northern France." width="660" height="526" data-map="wgbary" loading="eager" decoding="async">
+        </figure>
+        <figure class="map-cell is-ours">
+          <h4>WG<sub>Bary×Grad</sub> <span class="ours-tag">Ours</span></h4>
+          <p class="verdict">Sparse and sign-aware.</p>
+          <img src="assets/figures/map-wgbarygrad-t1.webp" alt="WassersteinGrad barycenter used as a mask on the base gradient: a spatially concentrated, signed attribution map." width="660" height="526" data-map="wgbarygrad" loading="eager" decoding="async">
+        </figure>
+      </div>
+
+      <div class="teaser-foot">
+        <span class="scale">
+          <span>−1</span><span class="scale-bar" aria-hidden="true"></span><span>+1</span>
+        </span>
+        <span>Normalised attribution of surface precipitation over the Paris ROI (black box) with respect to zonal wind at 250&nbsp;hPa.</span>
+      </div>
     </div>
-
-    <figure class="assume" data-reveal>
-      <div class="assume-panel">
-        <p class="assume-h"><span class="tag tag-ok">What SmoothGrad assumes</span>Noise changes the values</p>
-        <svg viewBox="0 0 480 190" class="curves" role="img" aria-label="Schematic: eight noisy copies of the same profile, all in the same place. Their pointwise mean recovers the profile.">
-          <line class="base" x1="0" x2="480" y1="176" y2="176"/>
-          <g class="copies"><path d="M0 176.4L4 176.1L8 176.5L12 175.8L16 175.8L20 176.1L24 175.2L28 176.0L32 176.1L36 174.5L40 176.8L44 179.0L48 176.2L52 174.4L56 175.2L60 175.3L64 176.0L68 176.4L72 176.2L76 176.9L80 176.4L84 175.4L88 176.3L92 175.7L96 174.9L100 177.0L104 176.2L108 173.9L112 176.1L116 178.2L120 177.1L124 175.9L128 174.7L132 174.8L136 175.9L140 175.4L144 175.9L148 177.2L152 175.6L156 174.7L160 174.4L164 171.8L168 169.0L172 167.3L176 166.2L180 160.8L184 148.1L188 140.2L192 137.5L196 134.9L200 120.8L204 79.5L208 59.1L212 59.5L216 25.4L220 31.0L224 66.0L228 34.3L232 29.4L236 49.5L240 3.0L244 -8.9L248 38.6L252 54.5L256 42.7L260 13.0L264 4.5L268 60.5L272 68.8L276 37.4L280 69.2L284 92.9L288 103.5L292 137.0L296 156.2L300 164.6L304 171.5L308 172.7L312 172.9L316 174.0L320 176.4L324 177.2L328 174.8L332 175.2L336 177.5L340 176.3L344 175.9L348 176.8L352 175.3L356 174.8L360 175.9L364 175.5L368 176.0L372 177.2L376 177.3L380 176.9L384 174.8L388 173.5L392 176.5L396 177.4L400 175.2L404 175.9L408 176.9L412 175.8L416 176.4L420 176.5L424 175.4L428 175.7L432 175.5L436 175.3L440 176.0L444 175.9L448 177.2L452 178.5L456 175.3L460 173.3L464 175.8L468 176.4L472 175.6L476 176.6L480 176.4"/><path d="M0 175.7L4 175.9L8 175.6L12 176.2L16 176.1L20 175.9L24 176.7L28 176.0L32 175.9L36 177.3L40 175.3L44 173.4L48 175.8L52 177.4L56 176.7L60 176.6L64 176.0L68 175.6L72 175.9L76 175.2L80 175.7L84 176.5L88 175.7L92 176.3L96 176.9L100 175.2L104 175.8L108 177.7L112 175.9L116 174.2L120 175.1L124 176.0L128 177.0L132 177.0L136 176.0L140 176.3L144 175.6L148 174.2L152 174.9L156 174.8L160 173.5L164 173.5L168 172.3L172 168.8L176 162.6L180 157.8L184 156.1L188 147.0L192 130.1L196 109.7L200 96.1L204 103.6L208 92.5L212 64.3L216 67.8L220 41.7L224 -3.8L228 14.0L232 15.7L236 2.0L240 48.8L244 67.0L248 32.5L252 20.0L256 25.7L260 43.6L264 45.5L268 0.4L272 8.2L276 63.1L280 74.9L284 98.6L288 131.8L292 139.4L296 150.3L300 161.7L304 167.3L308 172.7L312 175.8L316 176.4L320 175.1L324 174.7L328 176.9L332 176.6L336 174.7L340 175.8L344 176.1L348 175.3L352 176.6L356 177.0L360 176.1L364 176.4L368 176.0L372 175.0L376 174.9L380 175.2L384 177.0L388 178.2L392 175.6L396 174.8L400 176.7L404 176.1L408 175.2L412 176.2L416 175.7L420 175.5L424 176.5L428 176.3L432 176.4L436 176.6L440 176.0L444 176.1L448 175.0L452 173.8L456 176.6L460 178.3L464 176.1L468 175.6L472 176.3L476 175.5L480 175.7"/><path d="M0 175.9L4 176.7L8 176.3L12 175.9L16 177.0L20 175.1L24 173.0L28 176.1L32 178.2L36 176.7L40 176.3L44 176.0L48 175.4L52 175.8L56 175.4L60 175.5L64 176.6L68 175.9L72 176.1L76 177.0L80 175.3L84 175.7L88 177.9L92 175.7L96 173.4L100 175.2L104 176.6L108 177.2L112 177.1L116 175.9L120 176.0L124 175.8L128 174.5L132 175.7L136 176.4L140 175.3L144 176.7L148 176.8L152 173.8L156 174.5L160 175.9L164 172.3L168 169.2L172 167.9L176 166.2L180 162.4L184 148.5L188 137.4L192 134.9L196 114.9L200 106.1L204 116.1L208 82.7L212 59.3L216 65.0L220 11.4L224 -12.1L228 39.5L232 46.0L236 22.6L240 10.6L244 19.3L248 68.8L252 66.3L256 9.3L260 17.9L264 24.5L268 -8.2L272 35.4L276 77.2L280 73.8L284 105.8L288 129.8L292 133.3L296 147.8L300 160.9L304 168.8L308 174.5L312 175.2L316 173.6L320 175.2L324 176.3L328 175.3L332 176.7L336 177.4L340 176.0L344 176.1L348 176.0L352 174.6L356 174.8L360 175.7L364 177.3L368 178.2L372 175.4L376 174.4L380 176.9L384 176.4L388 174.9L392 176.1L396 175.8L400 175.3L404 176.7L408 176.6L412 176.3L416 176.7L420 175.9L424 175.6L428 174.8L432 174.0L436 176.9L440 178.9L444 176.0L448 175.1L452 176.4L456 175.6L460 175.5L464 176.1L468 175.5L472 176.0L476 176.3L480 175.9"/><path d="M0 176.0L4 175.4L8 175.7L12 176.1L16 175.1L20 176.7L24 178.5L28 175.9L32 174.2L36 175.4L40 175.7L44 176.0L48 176.5L52 176.2L56 176.5L60 176.4L64 175.5L68 176.1L72 175.9L76 175.2L80 176.6L84 176.2L88 174.3L92 176.3L96 178.2L100 176.7L104 175.5L108 175.0L112 175.0L116 176.1L120 176.0L124 176.1L128 177.2L132 176.2L136 175.5L140 176.3L144 175.0L148 174.6L152 176.5L156 175.0L160 172.3L164 173.0L168 172.1L172 168.3L176 162.6L180 156.4L184 155.8L188 149.5L192 132.4L196 126.7L200 108.7L204 72.5L208 72.4L212 64.5L216 34.2L220 58.4L224 62.6L228 9.6L232 1.6L236 24.9L240 42.3L244 43.0L248 6.8L252 9.9L256 54.1L260 39.5L264 28.5L268 58.9L272 36.6L276 29.2L280 71.0L284 87.5L288 109.5L292 142.5L296 157.5L300 164.8L304 169.6L308 171.1L312 173.9L316 176.8L320 176.1L324 175.5L328 176.5L332 175.4L336 174.8L340 176.0L344 175.9L348 176.0L352 177.2L356 177.0L360 176.3L364 174.9L368 174.1L372 176.5L376 177.4L380 175.2L384 175.7L388 176.9L392 175.9L396 176.1L400 176.6L404 175.4L408 175.5L412 175.7L416 175.4L420 176.1L424 176.4L428 177.0L432 177.7L436 175.3L440 173.6L444 176.0L448 176.8L452 175.6L456 176.4L460 176.5L464 175.9L468 176.4L472 176.0L476 175.7L480 176.0"/><path d="M0 177.8L4 177.5L8 173.6L12 173.9L16 176.6L20 176.3L24 176.4L28 176.8L32 176.1L36 176.3L40 175.9L44 175.3L48 176.1L52 175.7L56 175.4L60 176.8L64 175.6L68 174.9L72 178.0L76 178.0L80 174.8L84 174.4L88 175.1L92 175.8L96 176.8L100 176.4L104 176.5L108 177.0L112 175.4L116 175.3L120 176.2L124 174.9L128 175.7L132 177.5L136 175.3L140 174.5L144 176.9L148 177.3L152 175.9L156 173.9L160 171.8L164 171.4L168 170.9L172 168.8L176 165.5L180 163.4L184 156.6L188 139.7L192 130.5L196 119.0L200 89.7L204 92.6L208 104.7L212 63.3L216 30.6L220 34.1L224 49.0L228 57.7L232 7.8L236 -21.2L240 24.4L244 28.0L248 23.8L252 70.2L256 60.3L260 22.1L264 37.1L268 16.4L272 -8.8L276 42.1L280 89.7L284 110.0L288 119.3L292 131.2L296 155.6L300 166.4L304 168.0L308 172.3L312 173.2L316 174.4L320 176.6L324 176.2L328 176.6L332 177.4L336 176.0L340 174.8L344 174.3L348 175.4L352 177.9L356 176.8L360 174.6L364 176.4L368 177.2L372 175.5L376 176.1L380 176.1L384 174.8L388 175.6L392 176.1L396 175.9L400 176.8L404 177.0L408 176.9L412 176.2L416 173.5L420 174.2L424 177.7L428 176.9L432 175.4L436 176.7L440 176.3L444 175.7L448 176.4L452 175.7L456 175.5L460 175.9L464 175.4L468 176.0L472 176.3L476 175.9L480 177.8"/><path d="M0 174.4L4 174.7L8 178.0L12 177.8L16 175.5L20 175.7L24 175.7L28 175.3L32 175.9L36 175.8L40 176.1L44 176.6L48 175.9L52 176.3L56 176.5L60 175.3L64 176.3L68 176.9L72 174.3L76 174.3L80 177.0L84 177.4L88 176.8L92 176.2L96 175.3L100 175.7L104 175.5L108 175.2L112 176.5L116 176.6L120 175.8L124 176.9L128 176.2L132 174.7L136 176.4L140 177.1L144 174.8L148 174.1L152 174.7L156 175.5L160 175.7L164 173.8L168 170.7L172 167.5L176 163.3L180 155.6L184 148.8L188 147.5L192 136.0L196 123.2L200 122.6L204 92.5L208 53.7L212 61.0L216 63.4L220 39.0L224 10.7L228 -5.9L232 34.1L236 62.1L240 30.6L244 35.6L248 45.0L252 6.6L256 10.7L260 35.9L264 17.8L268 37.9L272 74.2L276 59.1L280 57.4L284 84.0L288 118.4L292 144.3L296 150.8L300 160.2L304 170.2L308 173.0L312 175.5L316 176.1L320 174.9L324 175.6L328 175.4L332 174.8L336 176.0L340 177.0L344 177.4L348 176.5L352 174.4L356 175.3L360 177.2L364 175.7L368 175.0L372 176.4L376 175.9L380 175.9L384 177.0L388 176.4L392 175.9L396 176.1L400 175.3L404 175.2L408 175.2L412 175.8L416 178.1L420 177.5L424 174.5L428 175.3L432 176.5L436 175.4L440 175.7L444 176.3L448 175.7L452 176.2L456 176.5L460 176.1L464 176.5L468 176.0L472 175.7L476 176.0L480 174.4"/><path d="M0 176.2L4 175.7L8 176.0L12 176.6L16 176.1L20 176.5L24 176.3L28 175.7L32 176.3L36 175.6L40 175.4L44 176.6L48 175.0L52 174.5L56 178.0L60 178.4L64 175.6L68 175.0L72 175.0L76 175.3L80 176.2L84 176.0L88 176.5L92 177.1L96 175.8L100 175.9L104 176.4L108 174.8L112 175.8L116 177.4L120 174.9L124 174.2L128 176.9L132 177.7L136 177.0L140 175.7L144 174.4L148 175.1L152 175.0L156 173.9L160 175.0L164 173.2L168 169.5L172 169.5L176 163.9L180 157.5L184 159.2L188 145.2L192 123.3L196 123.2L200 117.5L204 95.5L208 62.4L212 31.1L216 54.4L220 67.8L224 29.5L228 42.9L232 44.7L236 -8.9L240 7.7L244 32.7L248 9.4L252 40.8L256 77.4L260 42.5L264 11.1L268 8.5L272 37.5L276 77.7L280 64.4L284 72.2L288 121.8L292 141.6L296 150.8L300 164.9L304 170.5L308 172.0L312 174.9L316 177.1L320 176.3L324 175.2L328 174.3L332 175.1L336 177.5L340 176.4L344 174.4L348 176.4L352 177.0L356 175.7L360 176.7L364 176.5L368 174.9L372 175.5L376 175.6L380 175.3L384 176.4L388 177.0L392 177.6L396 176.9L400 173.8L404 174.2L408 177.2L412 176.2L416 175.2L420 176.7L424 176.3L428 175.9L432 176.7L436 176.0L440 175.7L444 175.9L448 175.2L452 175.6L456 175.7L460 175.6L464 178.3L468 178.1L472 174.2L476 174.3L480 176.2"/><path d="M0 175.8L4 176.3L8 176.0L12 175.5L16 175.9L20 175.6L24 175.8L28 176.3L32 175.7L36 176.3L40 176.5L44 175.5L48 176.8L52 177.3L56 174.3L60 174.0L64 176.4L68 176.8L72 176.8L76 176.6L80 175.8L84 176.0L88 175.6L92 175.0L96 176.2L100 176.1L104 175.6L108 177.0L112 176.2L116 174.8L120 176.9L124 177.5L128 175.2L132 174.5L136 175.0L140 176.0L144 176.9L148 175.9L152 175.5L156 175.5L160 173.0L164 172.2L168 171.9L172 166.9L176 164.6L180 160.6L184 146.6L188 142.8L192 142.1L196 119.7L200 99.0L204 90.0L208 89.6L212 88.4L216 43.1L220 10.4L224 27.3L228 6.7L232 2.7L236 51.6L240 44.8L244 31.7L248 57.2L252 31.6L256 -3.9L260 18.6L264 39.9L268 44.6L272 34.8L276 28.8L280 79.0L284 116.1L288 116.3L292 135.4L296 154.9L300 161.5L304 168.1L308 173.3L312 174.1L316 173.9L320 175.2L324 176.4L328 177.4L332 176.8L336 174.7L340 175.6L344 177.3L348 175.7L352 175.1L356 176.2L360 175.4L364 175.6L368 176.9L372 176.4L376 176.3L380 176.6L384 175.7L388 175.1L392 174.6L396 175.2L400 177.9L404 177.5L408 174.9L412 175.8L416 176.7L420 175.4L424 175.8L428 176.1L432 175.4L436 176.0L440 176.3L444 176.1L448 176.7L452 176.3L456 176.3L460 176.3L464 174.1L468 174.2L472 177.5L476 177.5L480 175.8"/></g>
-          <path class="mean" d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 175.9L28 176.0L32 176.0L36 176.0L40 176.0L44 176.1L48 176.0L52 175.9L56 176.0L60 176.0L64 176.0L68 176.0L72 176.0L76 176.1L80 176.0L84 176.0L88 176.0L92 176.0L96 175.9L100 176.0L104 176.0L108 176.0L112 176.0L116 176.1L120 176.0L124 175.9L128 175.9L132 176.0L136 176.0L140 175.8L144 175.8L148 175.7L152 175.2L156 174.7L160 174.0L164 172.6L168 170.7L172 168.1L176 164.4L180 159.3L184 152.5L188 143.7L192 133.4L196 121.4L200 107.6L204 92.8L208 77.1L212 61.4L216 48.0L220 36.7L224 28.6L228 24.8L232 22.7L236 22.8L240 26.5L244 31.1L248 35.3L252 37.5L256 34.5L260 29.1L264 26.1L268 27.4L272 35.8L276 51.8L280 72.4L284 95.9L288 118.8L292 138.1L296 153.0L300 163.1L304 169.2L308 172.7L312 174.4L316 175.3L320 175.7L324 175.9L328 175.9L332 176.0L336 176.1L340 176.0L344 175.9L348 176.0L352 176.0L356 176.0L360 176.0L364 176.0L368 176.0L372 176.0L376 176.0L380 176.0L384 176.0L388 175.9L392 176.0L396 176.0L400 175.9L404 176.0L408 176.1L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.1L444 176.0L448 176.0L452 176.0L456 176.0L460 175.9L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/>
-        </svg>
-        <p class="assume-d">Each copy is the true map plus noise. The copies agree on <em>where</em> the structure is, so averaging cancels the noise and keeps the peak.</p>
-      </div>
-      <div class="assume-panel">
-        <p class="assume-h"><span class="tag tag-bad">What happens on a physical field</span>Noise changes the positions</p>
-        <svg viewBox="0 0 480 190" class="curves" role="img" aria-label="Schematic: eight copies of the same profile, each displaced. Their pointwise mean is a low, wide smear that has lost almost half of the peak.">
-          <line class="base" x1="0" x2="480" y1="176" y2="176"/>
-          <path class="truth" d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 176.0L60 176.0L64 176.0L68 176.0L72 176.0L76 176.0L80 176.0L84 176.0L88 176.0L92 176.0L96 176.0L100 176.0L104 176.0L108 176.0L112 176.0L116 176.0L120 176.0L124 176.0L128 176.0L132 176.0L136 175.9L140 175.9L144 175.8L148 175.6L152 175.3L156 174.7L160 173.9L164 172.7L168 170.8L172 168.1L176 164.3L180 159.2L184 152.4L188 143.9L192 133.5L196 121.3L200 107.5L204 92.5L208 77.1L212 62.1L216 48.3L220 36.8L224 28.3L228 23.3L232 22.0L236 23.8L240 27.7L244 32.1L248 35.3L252 35.8L256 33.5L260 29.6L264 26.7L268 28.0L272 36.0L276 51.3L280 72.3L284 95.9L288 118.8L292 138.3L296 153.0L300 163.0L304 169.2L308 172.7L312 174.5L316 175.3L320 175.7L324 175.9L328 175.9L332 176.0L336 176.0L340 176.0L344 176.0L348 176.0L352 176.0L356 176.0L360 176.0L364 176.0L368 176.0L372 176.0L376 176.0L380 176.0L384 176.0L388 176.0L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/>
-          <g class="copies"><path d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 175.9L60 175.9L64 175.7L68 175.5L72 175.2L76 174.7L80 174.0L84 172.8L88 171.1L92 168.7L96 165.3L100 160.8L104 155.0L108 147.7L112 138.7L116 128.2L120 116.2L124 103.0L128 89.1L132 75.2L136 61.9L140 50.1L144 40.5L148 33.7L152 30.0L156 29.4L160 31.5L164 35.1L168 39.1L172 41.9L176 42.5L180 40.6L184 37.2L188 34.1L192 34.2L196 39.6L200 51.4L204 68.7L208 89.6L212 111.0L216 130.5L220 146.4L224 158.0L228 165.8L232 170.6L236 173.3L240 174.7L244 175.4L248 175.7L252 175.9L256 175.9L260 176.0L264 176.0L268 176.0L272 176.0L276 176.0L280 176.0L284 176.0L288 176.0L292 176.0L296 176.0L300 176.0L304 176.0L308 176.0L312 176.0L316 176.0L320 176.0L324 176.0L328 176.0L332 176.0L336 176.0L340 176.0L344 176.0L348 176.0L352 176.0L356 176.0L360 176.0L364 176.0L368 176.0L372 176.0L376 176.0L380 176.0L384 176.0L388 176.0L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/><path d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 176.0L60 176.0L64 176.0L68 176.0L72 176.0L76 176.0L80 176.0L84 176.0L88 176.0L92 175.9L96 175.9L100 175.8L104 175.5L108 175.2L112 174.5L116 173.5L120 171.9L124 169.5L128 166.0L132 161.0L136 154.2L140 145.4L144 134.4L148 121.1L152 105.8L156 89.1L160 71.7L164 54.6L168 39.1L172 26.4L176 17.5L180 12.8L184 12.5L188 15.6L192 20.5L196 25.0L200 27.0L204 25.5L208 21.4L212 17.6L216 17.9L220 26.0L224 42.7L228 66.5L232 93.3L236 118.8L240 139.9L244 155.1L248 164.9L252 170.6L256 173.5L260 175.0L264 175.6L268 175.8L272 175.9L276 176.0L280 176.0L284 176.0L288 176.0L292 176.0L296 176.0L300 176.0L304 176.0L308 176.0L312 176.0L316 176.0L320 176.0L324 176.0L328 176.0L332 176.0L336 176.0L340 176.0L344 176.0L348 176.0L352 176.0L356 176.0L360 176.0L364 176.0L368 176.0L372 176.0L376 176.0L380 176.0L384 176.0L388 176.0L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/><path d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 176.0L60 176.0L64 176.0L68 176.0L72 176.0L76 176.0L80 176.0L84 176.0L88 176.0L92 176.0L96 176.0L100 176.0L104 176.0L108 175.9L112 175.9L116 175.8L120 175.6L124 175.3L128 174.9L132 174.2L136 173.1L140 171.5L144 169.1L148 165.9L152 161.4L156 155.6L160 148.1L164 139.0L168 128.1L172 115.5L176 101.8L180 87.2L184 72.6L188 58.7L192 46.4L196 36.6L200 29.7L204 26.2L208 26.0L212 28.5L216 32.5L220 36.6L224 39.1L228 39.0L232 36.4L236 32.6L240 30.2L244 32.1L248 40.3L252 55.2L256 75.4L260 97.9L264 119.7L268 138.4L272 152.7L276 162.6L280 168.8L284 172.4L288 174.3L292 175.2L296 175.7L300 175.9L304 175.9L308 176.0L312 176.0L316 176.0L320 176.0L324 176.0L328 176.0L332 176.0L336 176.0L340 176.0L344 176.0L348 176.0L352 176.0L356 176.0L360 176.0L364 176.0L368 176.0L372 176.0L376 176.0L380 176.0L384 176.0L388 176.0L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/><path d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 176.0L60 176.0L64 176.0L68 176.0L72 176.0L76 176.0L80 176.0L84 176.0L88 176.0L92 176.0L96 176.0L100 176.0L104 176.0L108 176.0L112 176.0L116 176.0L120 176.0L124 176.0L128 176.0L132 175.9L136 175.9L140 175.7L144 175.5L148 175.2L152 174.6L156 173.7L160 172.3L164 170.1L168 167.1L172 162.8L176 157.0L180 149.4L184 140.0L188 128.5L192 115.1L196 100.2L200 84.4L204 68.4L208 53.2L212 39.8L216 29.2L220 22.2L224 19.0L228 19.6L232 22.9L236 27.5L240 31.4L244 33.1L248 31.7L252 27.9L256 24.2L260 24.0L264 30.3L268 44.4L272 65.1L276 89.4L280 113.7L284 134.7L288 150.8L292 161.8L296 168.6L300 172.4L304 174.4L308 175.3L312 175.7L316 175.9L320 175.9L324 176.0L328 176.0L332 176.0L336 176.0L340 176.0L344 176.0L348 176.0L352 176.0L356 176.0L360 176.0L364 176.0L368 176.0L372 176.0L376 176.0L380 176.0L384 176.0L388 176.0L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/><path d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 176.0L60 176.0L64 176.0L68 176.0L72 176.0L76 176.0L80 176.0L84 176.0L88 176.0L92 176.0L96 176.0L100 176.0L104 176.0L108 176.0L112 176.0L116 176.0L120 176.0L124 176.0L128 176.0L132 176.0L136 176.0L140 176.0L144 175.9L148 175.8L152 175.7L156 175.5L160 175.2L164 174.7L168 173.9L172 172.7L176 171.0L180 168.5L184 165.2L188 160.7L192 155.0L196 147.7L200 138.9L204 128.5L208 116.7L212 103.8L216 90.2L220 76.5L224 63.5L228 51.8L232 42.3L236 35.4L240 31.6L244 30.8L248 32.5L252 36.0L256 40.0L260 43.0L264 43.9L268 42.3L272 39.0L276 35.8L280 35.2L284 39.5L288 49.9L292 66.0L296 86.0L300 107.1L304 126.9L308 143.3L312 155.8L316 164.3L320 169.7L324 172.8L328 174.4L332 175.3L336 175.7L340 175.9L344 175.9L348 176.0L352 176.0L356 176.0L360 176.0L364 176.0L368 176.0L372 176.0L376 176.0L380 176.0L384 176.0L388 176.0L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/><path d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 176.0L60 176.0L64 176.0L68 176.0L72 176.0L76 176.0L80 176.0L84 176.0L88 176.0L92 176.0L96 176.0L100 176.0L104 176.0L108 176.0L112 176.0L116 176.0L120 176.0L124 176.0L128 176.0L132 176.0L136 176.0L140 176.0L144 176.0L148 176.0L152 176.0L156 176.0L160 176.0L164 176.0L168 176.0L172 175.9L176 175.8L180 175.7L184 175.4L188 175.0L192 174.2L196 173.1L200 171.3L204 168.6L208 164.8L212 159.6L216 152.6L220 143.6L224 132.5L228 119.3L232 104.4L236 88.1L240 71.4L244 55.2L248 40.6L252 28.7L256 20.4L260 16.1L264 15.9L268 18.9L272 23.6L276 28.0L280 30.1L284 28.9L288 25.1L292 21.2L296 20.8L300 27.1L304 41.8L308 63.4L312 88.9L316 114.0L320 135.5L324 151.7L328 162.6L332 169.2L336 172.8L340 174.6L344 175.4L348 175.8L352 175.9L356 176.0L360 176.0L364 176.0L368 176.0L372 176.0L376 176.0L380 176.0L384 176.0L388 176.0L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/><path d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 176.0L60 176.0L64 176.0L68 176.0L72 176.0L76 176.0L80 176.0L84 176.0L88 176.0L92 176.0L96 176.0L100 176.0L104 176.0L108 176.0L112 176.0L116 176.0L120 176.0L124 176.0L128 176.0L132 176.0L136 176.0L140 176.0L144 176.0L148 176.0L152 176.0L156 176.0L160 176.0L164 176.0L168 176.0L172 176.0L176 176.0L180 176.0L184 176.0L188 175.9L192 175.8L196 175.7L200 175.4L204 175.0L208 174.4L212 173.4L216 171.9L220 169.7L224 166.5L228 162.2L232 156.5L236 149.2L240 140.0L244 129.1L248 116.4L252 102.3L256 87.4L260 72.4L264 58.0L268 45.2L272 34.8L276 27.7L280 24.0L284 23.8L288 26.4L292 30.6L296 34.7L300 37.1L304 36.8L308 33.9L312 30.1L316 28.0L320 30.7L324 40.2L328 56.5L332 77.9L336 101.2L340 123.2L344 141.5L348 155.2L352 164.3L356 169.9L360 173.0L364 174.6L368 175.4L372 175.7L376 175.9L380 176.0L384 176.0L388 176.0L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/><path d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 176.0L60 176.0L64 176.0L68 176.0L72 176.0L76 176.0L80 176.0L84 176.0L88 176.0L92 176.0L96 176.0L100 176.0L104 176.0L108 176.0L112 176.0L116 176.0L120 176.0L124 176.0L128 176.0L132 176.0L136 176.0L140 176.0L144 176.0L148 176.0L152 176.0L156 176.0L160 176.0L164 176.0L168 176.0L172 176.0L176 176.0L180 176.0L184 176.0L188 176.0L192 176.0L196 176.0L200 176.0L204 175.9L208 175.8L212 175.7L216 175.5L220 175.1L224 174.4L228 173.4L232 171.8L236 169.4L240 166.0L244 161.3L248 155.0L252 146.8L256 136.7L260 124.5L264 110.5L268 95.1L272 78.9L276 62.9L280 48.0L284 35.3L288 25.8L292 19.9L296 18.0L300 19.6L304 23.6L308 28.3L312 31.6L316 32.2L320 29.7L324 25.6L328 22.8L332 24.8L336 34.1L340 51.2L344 74.1L348 99.1L352 122.5L356 141.8L360 155.9L364 165.1L368 170.5L372 173.4L376 174.9L380 175.5L384 175.8L388 175.9L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/></g>
-          <path class="mean" d="M0 176.0L4 176.0L8 176.0L12 176.0L16 176.0L20 176.0L24 176.0L28 176.0L32 176.0L36 176.0L40 176.0L44 176.0L48 176.0L52 176.0L56 176.0L60 176.0L64 176.0L68 175.9L72 175.9L76 175.8L80 175.7L84 175.6L88 175.4L92 175.1L96 174.6L100 174.1L104 173.3L108 172.3L112 171.1L116 169.7L120 168.0L124 166.0L128 163.7L132 161.3L136 158.6L140 155.8L144 152.9L148 150.0L152 147.0L156 143.9L160 140.8L164 137.7L168 134.4L172 130.9L176 127.2L180 123.3L184 119.3L188 115.6L192 112.2L196 109.2L200 106.8L204 104.6L208 102.8L212 101.2L216 100.1L220 99.5L224 99.5L228 99.7L232 99.8L236 99.3L240 98.2L244 96.5L248 94.6L252 92.9L256 91.7L260 91.1L264 91.2L268 92.0L272 93.3L276 94.8L280 96.5L284 98.3L288 100.5L292 103.3L296 107.0L300 111.4L304 116.4L308 121.5L312 126.3L316 130.3L320 133.7L324 136.8L328 140.0L332 143.9L336 148.5L340 153.6L344 158.9L348 163.7L352 167.8L356 171.0L360 173.1L364 174.5L368 175.2L372 175.6L376 175.8L380 175.9L384 176.0L388 176.0L392 176.0L396 176.0L400 176.0L404 176.0L408 176.0L412 176.0L416 176.0L420 176.0L424 176.0L428 176.0L432 176.0L436 176.0L440 176.0L444 176.0L448 176.0L452 176.0L456 176.0L460 176.0L464 176.0L468 176.0L472 176.0L476 176.0L480 176.0"/>
-          <g class="note" aria-hidden="true">
-            <line class="guide" x1="232" x2="398" y1="22" y2="22"/>
-            <line class="guide" x1="261" x2="398" y1="91.1" y2="91.1"/>
-            <line x1="398" x2="398" y1="22" y2="91.1"/>
-            <text x="406" y="56">−45 %</text>
-            <text class="sm" x="406" y="70">of the peak</text>
-          </g>
-        </svg>
-        <p class="assume-d">Each copy is the true map, <em>displaced</em>. Averaging them pixel by pixel spreads the peak over every place it visited: the structure is blurred, not denoised.</p>
-      </div>
-      <figcaption class="assume-cap"><span class="fig-n">Schematic</span><span class="kv"><span class="key key-copy"></span>eight perturbed explanations</span> <span class="kv"><span class="key key-mean"></span>their pointwise mean</span> <span class="kv"><span class="key key-truth"></span>one unperturbed copy</span></figcaption>
-    </figure>
-
-    <p class="bridge">Which of the two happens inside a weather model?</p>
+    <p class="caption" style="margin-top:1rem"><span class="fig-label">Figure 2</span>Four ways of explaining the same forecast, on the same atmospheric event. Only the transport-based aggregation produces a map a meteorologist can read as a region.</p>
   </div>
 </section>
 
-<!-- ======================================================== 02 OBSERVATION -->
-<section class="sect" id="observation" aria-labelledby="obs-h">
-  <div class="wrap grid">
-    <p class="sect-mark" data-n="02">The observation</p>
-    <h2 class="statement" id="obs-h">Small perturbations don't blur the explanation. <em>They move it.</em></h2>
+<!-- ====================================================== TL;DR =========== -->
+<section class="tldr band">
+  <div class="wrap">
+    <div class="tldr-inner" data-reveal>
+      <p>Perturbing the input of a weather model doesn't make its explanation <span class="hi">noisier</span> — it makes it <span class="hi">move</span>. So we stop averaging explanations pointwise and start averaging them <span class="hi-2">geometrically</span>.</p>
+    </div>
+  </div>
+</section>
 
-    <div class="col-text">
-      <p>Perturb the input wind once and recompute the gradient. The forecast barely changes, yet the explanation shifts. Solving the optimal-transport problem between the two maps, and masking the mass that stays where it was, shows where the rest went: out of one place and into a nearby one.</p>
+<!-- ==================================================== PROBLEM =========== -->
+<section id="problem">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">01 — The problem</p>
+      <h2>Neural forecasts are replacing physical solvers. Nobody can read them.</h2>
+      <p class="lede">Data-driven models now match or beat numerical weather prediction at a fraction of the inference cost. But when one predicts heavy rain over Paris tomorrow, a forecaster has no way to ask what in today's atmospheric state made it say that.</p>
     </div>
 
-    <figure class="trip" data-reveal>
+    <div class="cards cards-3" data-reveal>
+      <div class="card">
+        <span class="card-num">Why it matters</span>
+        <h4>No explanation, no operational trust</h4>
+        <p>Extreme-weather warnings are life-safety decisions. A model that is right for the wrong reasons is a liability, and without attribution you cannot tell the two apart.</p>
+      </div>
+      <div class="card">
+        <span class="card-num">Why it's hard</span>
+        <h4>XAI was built for photographs</h4>
+        <p>Gradient attribution methods assume a static image on a pixel grid. The atmosphere is a continuous, advective, physically constrained field — the assumptions do not transfer for free.</p>
+      </div>
+      <div class="card">
+        <span class="card-num">Why it compounds</span>
+        <h4>Forecasting is autoregressive</h4>
+        <p>Modern models predict <span class="math">t</span>+1 from <span class="math">t</span>, then feed the prediction back in. Gradients backpropagate through every one of those <span class="math">T</span> compositions, and whatever distortion each step adds accumulates.</p>
+      </div>
+    </div>
+
+    <figure class="fig" data-reveal>
+      <img src="assets/figures/rollout.webp" alt="Diagram of autoregressive prediction: a stack of 21 atmospheric channels at time t is passed through the forecasting model f repeatedly, producing states at t+1 through t+T." width="1500" height="501" loading="lazy" decoding="async">
+      <figcaption><span class="fig-label">Figure 1a</span>Autoregressive use of a neural forecasting model <span class="math">f</span>, producing a sequence of physical fields — here regional atmospheric states with <span class="math">C</span> = 21 channels — at successive lead times.</figcaption>
+    </figure>
+
+    <div class="section-head" data-reveal style="margin-top:clamp(3rem,6vw,4.5rem)">
+      <h3>What we actually compute</h3>
+      <p>Every attribution on this page is one number's sensitivity to one field: pick an input channel, pick an output channel, reduce the forecast over a region to a scalar, differentiate.</p>
+    </div>
+
+    <figure class="fig" data-reveal>
+      <img src="assets/figures/attribution-pipeline.webp" alt="Local prediction explanation pipeline: input zonal wind at 250 hPa at time t, predicted surface precipitation at t+5 with a region of interest box over Paris, and the resulting gradient attribution map." width="1500" height="545" loading="lazy" decoding="async">
+      <figcaption><span class="fig-label">Figure 1b</span>Left to right: input zonal wind at 250&nbsp;hPa at time <span class="math">t</span>; predicted surface precipitation at <span class="math">t</span>+5; the explanation of rain over the Paris ROI. The scalar target is the spatial mean over the box <span class="math">ℬ</span>, and the attribution is <span class="math">G</span> = ∇<sub>x<sub>in</sub></sub> 𝒴<sub>target</sub>.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- =============================================== FAILURE MODE =========== -->
+<section id="failure" class="band">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">02 — The failure mode</p>
+      <h2>Displacement, not noise.</h2>
+      <p class="lede">A deep network is locally very rough, so a single gradient says more about that roughness than about the structure we want to see. Smoothing methods fix this by sampling a neighbourhood and averaging — and that averaging step is where things go wrong on physical fields.</p>
+    </div>
+
+    <figure class="fig fig-plain" data-reveal>
+      <img src="assets/figures/shattered-gradients.webp" alt="Three panels. Left: a smooth signal with high-frequency roughness. Middle: its gradient, where the roughness dominates and a single evaluation is essentially arbitrary. Right: averaging over a neighbourhood of N samples recovers the true underlying trend." width="2000" height="423" loading="lazy" decoding="async">
+      <figcaption><span class="fig-label">The shattered gradient problem</span>A single gradient evaluation (middle, red point) is essentially arbitrary. SmoothGrad's fix is to sample <span class="math">N</span> noisy neighbours and average: <span class="math">A</span><sub>SG</sub>(<span class="math">x</span>) = (1/<span class="math">N</span>) Σ ∇<span class="math">f</span>(<span class="math">x</span> + <span class="math">ε<sub>i</sub></span>). On 1-D signals this recovers the trend. The question is what it recovers on a 2-D advective field.</figcaption>
+    </figure>
+
+    <div class="section-head" data-reveal style="margin-top:clamp(2.5rem,5vw,4rem)">
+      <h3>The averaging step assumes something false</h3>
+      <p>SmoothGrad averages the <span class="math">N</span> maps <em>pointwise</em>. That step assumes the maps are noisy estimates of one attribution. On atmospheric fields, they are not.</p>
+    </div>
+
+    <div class="contrast" data-reveal>
+      <div class="assume">
+        <span class="tag">The assumption</span>
+        <h4>Noise perturbs amplitude</h4>
+        <p>Each perturbed map is the true attribution plus independent, spatially stationary noise. Averaging cancels it. This is why SmoothGrad works on natural images.</p>
+      </div>
+      <div class="reality">
+        <span class="tag">What actually happens</span>
+        <h4>Noise perturbs position</h4>
+        <p>The maps are geometrically <em class="term">displaced copies</em> of each other. Averaging spatially misaligned features does not denoise them — it blurs them, and smears mass across locations where nothing happened.</p>
+      </div>
+    </div>
+
+    <div class="section-head" data-reveal style="margin-top:clamp(2.5rem,5vw,4rem)">
+      <h3>The evidence: mass migrates</h3>
+      <p>Treat the clean and perturbed attribution maps as probability measures and solve for the optimal transport plan between them. Masking the diagonal isolates only the mass that physically moved to a new coordinate.</p>
+    </div>
+
+    <div class="triptych" data-reveal>
       <div class="trip-step">
-        <p class="trip-n"><span>01</span>Clean gradient</p>
-        <img class="mult" src="assets/figures/noise-baseline-grad.webp" width="888" height="373" loading="lazy" decoding="async"
-             alt="Clean gradient map over northern France: a compact speckle of red and blue values just south-west of the Paris target box.">
-        <p class="trip-d">The explanation on the unperturbed input.</p>
+        <span class="n">01</span>
+        <img src="assets/figures/noise-baseline-grad.webp" alt="Baseline gradient attribution map over northern France, showing speckled red and blue values concentrated near the Paris region of interest." width="888" height="373" loading="lazy" decoding="async">
+        <h4>Clean gradient</h4>
+        <p>The attribution on the unperturbed input.</p>
       </div>
-      <p class="trip-op" aria-hidden="true"><span class="m">+ ε</span></p>
       <div class="trip-step">
-        <p class="trip-n"><span>02</span>Perturbed gradient</p>
-        <img class="mult" src="assets/figures/noise-perturbed-grad.webp" width="888" height="384" loading="lazy" decoding="async"
-             alt="Perturbed gradient map: the same kind of speckle, visibly shifted relative to the clean map.">
-        <p class="trip-d">One noisy input draw. The prediction error changes by about 1&nbsp;%.</p>
+        <span class="n">02</span>
+        <img src="assets/figures/noise-perturbed-grad.webp" alt="Perturbed gradient attribution map, visibly similar in structure but shifted relative to the clean map." width="888" height="384" loading="lazy" decoding="async">
+        <h4>Perturbed gradient</h4>
+        <p>Same event, one noisy input draw. Prediction error changes by about 1%.</p>
       </div>
-      <p class="trip-op" aria-hidden="true"><span class="op-ot">transport</span></p>
-      <div class="trip-step is-flux">
-        <p class="trip-n"><span>03</span>Where the mass went</p>
-        <img class="mult" src="assets/figures/noise-transport-flux.webp" width="888" height="392" loading="lazy" decoding="async"
-             alt="Optimal-transport flux between the two maps: green regions where attribution mass was sent from and red regions where it was received, forming a structured dipole around the target. A dashed reference bar marks 200 kilometres.">
-        <p class="trip-d"><span class="key key-sent"></span>sent <span class="key key-recv"></span>received. A structured dipole, not speckle.</p>
+      <div class="trip-step">
+        <span class="n">03</span>
+        <img src="assets/figures/noise-transport-flux.webp" alt="Optimal transport mass flux map showing a structured dipole: green regions where attribution mass was sent and red regions where it was received, separated by roughly 200 kilometres." width="888" height="392" loading="lazy" decoding="async">
+        <h4>Transport flux</h4>
+        <p>Mass excavated from true locations, deposited nearby — a structured dipole, not random amplitude noise.</p>
+        <div class="legend-row">
+          <span><i style="background:#e8756b"></i>Received mass</span>
+          <span><i style="background:#4f8b52"></i>Sent mass</span>
+        </div>
       </div>
-      <figcaption><span class="fig-n">Paper · Fig. 1c</span>The dashed bar is 200&nbsp;km. If the perturbation only changed amplitudes, the transport flux would have no structure.</figcaption>
+    </div>
+    <p class="caption"><span class="fig-label">Figure 1c</span>The dashed reference scale is 200&nbsp;km. If the perturbation were stationary amplitude noise, this panel would be structureless.</p>
+
+    <div class="section-head" data-reveal style="margin-top:clamp(3rem,6vw,4.5rem)">
+      <h3>The dissociation: the forecast is fine, the explanation is not</h3>
+      <p>Track the spatial centroid of the attribution map against the model's own relative prediction error, sweeping the noise level. If the instability belonged to the forecasting model, the two curves would rise together. They dissociate sharply.</p>
+    </div>
+
+    <div class="stats" data-reveal>
+      <div class="stat is-red">
+        <span class="n">10–15 <span style="font-size:.42em;font-weight:500">km</span></span>
+        <p class="k">Average <b>centroid advection</b> of the attribution map below <span class="math">σ</span> = 0.4 — while model performance degrades by less than 1%.</p>
+      </div>
+      <div class="stat is-red">
+        <span class="n">~115 <span style="font-size:.42em;font-weight:500">km</span></span>
+        <p class="k"><b>Peak displacement</b> at <span class="math">t</span>+5. Each autoregressive step adds its own geometric distortion, and they compound.</p>
+      </div>
+      <div class="stat">
+        <span class="n">&lt; 1.5<span style="font-size:.45em;font-weight:500">%</span></span>
+        <p class="k">Relative <b>prediction error</b> across the whole noise sweep, at both lead times. The model is stable; its explanation is not.</p>
+      </div>
+    </div>
+
+    <figure class="fig" data-reveal>
+      <img src="assets/figures/displacement-t1.webp" alt="Two plots at lead time t+1. Left: peak displacement in kilometres rising from about 24 to 32 km as noise level increases. Right: centroid displacement rising from about 5 to 12.5 km while relative prediction error stays within 2.5%." width="1800" height="529" loading="lazy" decoding="async">
+      <figcaption><span class="fig-label">Figure 4 · t+1</span><b>One-step lead time.</b> Left: peak displacement, the location of arg&nbsp;max&nbsp;|<span class="math">G</span>|. Right: centroid displacement against relative prediction error on the secondary axis. Error bands are ±1 SEM across <span class="math">n</span> = 100 precipitation-filtered events.</figcaption>
     </figure>
 
-    <div class="evidence" data-reveal>
-      <div class="ev ev-move">
-        <p class="ev-v"><span class="ev-pre">up to</span><span class="ev-sym">≈</span>115<small>km</small></p>
-        <p class="ev-k">how far the peak of the explanation moves at <span class="m">t</span>&nbsp;+&nbsp;5 across the noise sweep</p>
-      </div>
-      <p class="ev-vs" aria-hidden="true">while</p>
-      <div class="ev ev-still">
-        <p class="ev-v"><span class="ev-sym">&lt;</span>1.5<small>%</small></p>
-        <p class="ev-k">how much the model's relative prediction error changes over the same sweep</p>
-      </div>
-      <p class="ev-note">Averaged over <span class="m">n</span>&nbsp;=&nbsp;100 heavy-rain events. The forecast is stable; its explanation is not. Already at <span class="m">t</span>&nbsp;+&nbsp;1 the centroid drifts <span class="nw">10–15&nbsp;km</span> for <span class="m">σ</span>&nbsp;&lt;&nbsp;0.4, and each autoregressive step adds its own distortion: peak displacement is 3–4× larger at <span class="m">t</span>&nbsp;+&nbsp;5.</p>
-    </div>
-
-    <div class="more">
-      <details>
-        <summary>Displacement against noise level <span>Paper · Fig. 4</span></summary>
-        <div class="more-body">
-          <figure>
-            <img class="mult" src="assets/figures/displacement-t1.webp" width="1800" height="529" loading="lazy" decoding="async"
-                 alt="Two plots at lead time t + 1. Left: peak displacement rising from about 24 to 32 km as the noise level increases. Right: centroid displacement rising from about 5 to 12.5 km while the relative prediction error stays within 2.5 percent.">
-            <figcaption><b>t + 1.</b> Left: displacement of the peak, arg&nbsp;max&nbsp;|<span class="m">G</span>|. Right: displacement of the centroid, against the relative prediction error on the secondary axis.</figcaption>
-          </figure>
-          <figure>
-            <img class="mult" src="assets/figures/displacement-t5.webp" width="1800" height="514" loading="lazy" decoding="async"
-                 alt="The same two plots at t + 5: peak displacement rises from about 70 to 115 km, three to four times more than at t + 1, while the relative prediction error stays within 1.5 percent.">
-            <figcaption><b>t + 5.</b> The displacement grows 3–4× while the prediction error stays flat. Bands are ±1 SEM over <span class="m">n</span>&nbsp;=&nbsp;100 events.</figcaption>
-          </figure>
-        </div>
-      </details>
-      <details>
-        <summary>Why explanations move <span>the architecture</span></summary>
-        <div class="more-body more-cols">
-          <div>
-            <h3>Convolutions and pooling</h3>
-            <p>Max pooling routes the gradient to the argmax of each window. When noise lifts a background value above the true signal, the argmax jumps and the gradient is <strong>relocated</strong> with it. Under Gaussian noise of scale <span class="m">s</span>, the expected ReLU output <span class="m">z</span>&thinsp;Φ(<span class="m">z</span>/<span class="m">s</span>)&nbsp;+&nbsp;<span class="m">s</span>&thinsp;φ(<span class="m">z</span>/<span class="m">s</span>) stays positive even for <span class="m">z</span>&nbsp;&lt;&nbsp;0, so inactive units fire and open gradient paths through irrelevant regions.</p>
-          </div>
-          <div>
-            <h3>Self-attention</h3>
-            <p>The attention matrix <span class="m">A</span> multiplies the backward pass directly, so the attribution follows the token routing that <span class="m">A</span> induces. Viewed as an interacting particle system, attention is non-Lipschitz with several local maxima of its interaction energy: different noise draws can land in <strong>different basins</strong>, not perturbed versions of one.</p>
-          </div>
-        </div>
-      </details>
-    </div>
+    <figure class="fig" data-reveal>
+      <img src="assets/figures/displacement-t5.webp" alt="The same two plots at lead time t+5. Peak displacement now rises from about 70 to 115 km, three to four times larger than at t+1, while relative prediction error stays within 1.5%." width="1800" height="514" loading="lazy" decoding="async">
+      <figcaption><span class="fig-label">Figure 4 · t+5</span><b>Autoregressive lead time.</b> Peak displacement amplifies by 3–4× relative to <span class="math">t</span>+1 while the prediction error stays flat. Geometric distortion accumulates across the rollout.</figcaption>
+    </figure>
 
     <blockquote class="pull" data-reveal>
-      <p>The right thing in the wrong place: meteorologists call it phase error, and forecast verification has known it for decades.</p>
+      <p>This is phase error: the right thing in the wrong place — a failure mode meteorological verification has known for decades.</p>
       <cite>Hoffman et al. 1995 · Keil &amp; Craig 2007 · Ebert 2008</cite>
     </blockquote>
   </div>
 </section>
 
-<!-- ================================================================ 03 IDEA -->
-<section class="sect band-night" id="idea" aria-labelledby="idea-h">
-  <div class="wrap grid">
-    <p class="sect-mark" data-n="03">The idea</p>
-    <h2 class="statement" id="idea-h">Averaging pointwise blurs the structure. <em>Wasserstein averaging preserves it.</em></h2>
-
-    <div class="col-text">
-      <p>Treat each explanation as a distribution of mass over the map. The pointwise mean averages <em>how much</em> mass each pixel holds. The Wasserstein barycenter averages <em>where</em> the mass is: it is the single distribution that is cheapest to reach from all of the others by moving mass.</p>
+<!-- ================================================== MECHANISM =========== -->
+<section id="mechanism" class="band-ink">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">03 — Why it happens</p>
+      <h2>The architecture makes displacement the expected outcome.</h2>
+      <p class="lede">This is not incidental to weather data. Two components that appear in essentially every modern forecasting backbone convert additive input noise into spatial deformation of the backpropagated gradient.</p>
     </div>
 
-    <figure class="rings" data-reveal aria-labelledby="rings-cap">
-      <div class="rings-src">
-        <p class="rings-lbl">Eight displaced copies <span class="m">μ</span><sub class="m-sub">1</sub> … <span class="m">μ</span><sub class="m-sub">8</sub></p>
-        <div class="rings-in">
-          <img src="assets/figures/barycenter-input-1.webp" width="256" height="256" alt="" loading="lazy" decoding="async">
-          <img src="assets/figures/barycenter-input-2.webp" width="256" height="256" alt="" loading="lazy" decoding="async">
-          <img src="assets/figures/barycenter-input-3.webp" width="256" height="256" alt="" loading="lazy" decoding="async">
-          <img src="assets/figures/barycenter-input-4.webp" width="256" height="256" alt="" loading="lazy" decoding="async">
-          <img src="assets/figures/barycenter-input-5.webp" width="256" height="256" alt="" loading="lazy" decoding="async">
-          <img src="assets/figures/barycenter-input-6.webp" width="256" height="256" alt="" loading="lazy" decoding="async">
-          <img src="assets/figures/barycenter-input-7.webp" width="256" height="256" alt="" loading="lazy" decoding="async">
-          <img src="assets/figures/barycenter-input-8.webp" width="256" height="256" alt="Eight ring-shaped distributions of mass, each shifted and deformed slightly relative to the others." loading="lazy" decoding="async">
+    <div class="cards cards-2" data-reveal>
+      <div class="card">
+        <span class="card-num">CNNs · convolution + pooling</span>
+        <h4>Max pooling routes gradients to the argmax</h4>
+        <p>Pooling sends gradient strictly to the argmax coordinate within each local window. If a noise spike in a background region exceeds the true signal, the argmax operator shifts — and the backpropagated gradient is <strong>physically relocated</strong> to the noise spike's coordinate.</p>
+        <p>Separately, under Gaussian noise of standard deviation <span class="math">s</span>, the expected ReLU output is <span class="math">z</span>&nbsp;Φ(<span class="math">z</span>/<span class="math">s</span>) + <span class="math">s</span>&nbsp;φ(<span class="math">z</span>/<span class="math">s</span>) — and that second term is strictly positive even when <span class="math">z</span> &lt; 0. Neurons that should be inactive fire anyway. These <strong>phantom activations</strong> unblock gradient paths through regions irrelevant to the original feature geometry.</p>
+      </div>
+      <div class="card">
+        <span class="card-num">Transformers · self-attention</span>
+        <h4>Attention routing is metastable</h4>
+        <p>The forward-pass attention matrix <span class="math">A</span> appears as a direct multiplicative factor in the backward pass, so the spatial structure of the attribution is anchored to the token routing <span class="math">A</span> induces. Any perturbation that alters <span class="math">A</span> alters the map.</p>
+        <p>Modelling tokens as an interacting particle system, self-attention is <strong>non-Lipschitz</strong> and its interaction energy admits multiple local maxima. Different noise draws can therefore drive the system into <strong>distinct basins of attraction</strong> — qualitatively different clusterings, not perturbed versions of one.</p>
+      </div>
+    </div>
+
+    <p class="caption" style="color:#7f8b9b;max-width:70ch" data-reveal>Consequence: the <span class="math">N</span> maps <span class="math">{G<sub>i</sub>}</span> that SmoothGrad averages are not noisy estimates of a fixed attribution. They are geometrically displaced versions of it — and pointwise averaging is the wrong operation on that set.</p>
+  </div>
+</section>
+
+<!-- ====================================================== IDEA ============ -->
+<section id="idea">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">04 — The key idea</p>
+      <h2>Average where the mass is, not what each pixel says.</h2>
+      <p class="lede">The pointwise average of two shifted bumps is two bumps. Their Wasserstein barycenter is one bump, in the consensus location. That single sentence is the method.</p>
+    </div>
+
+    <div class="bary" data-reveal>
+      <div>
+        <p class="bary-cap"><span class="math">N</span> perturbed measures μ<sub>i</sub></p>
+        <div class="bary-inputs">
+          <img src="assets/figures/barycenter-input-1.webp" alt="" width="256" height="256" loading="lazy" decoding="async">
+          <img src="assets/figures/barycenter-input-2.webp" alt="" width="256" height="256" loading="lazy" decoding="async">
+          <img src="assets/figures/barycenter-input-3.webp" alt="" width="256" height="256" loading="lazy" decoding="async">
+          <img src="assets/figures/barycenter-input-4.webp" alt="" width="256" height="256" loading="lazy" decoding="async">
+          <img src="assets/figures/barycenter-input-5.webp" alt="" width="256" height="256" loading="lazy" decoding="async">
+          <img src="assets/figures/barycenter-input-6.webp" alt="" width="256" height="256" loading="lazy" decoding="async">
+          <img src="assets/figures/barycenter-input-7.webp" alt="" width="256" height="256" loading="lazy" decoding="async">
+          <img src="assets/figures/barycenter-input-8.webp" alt="Eight ring-shaped probability measures, each shifted and deformed slightly relative to the others." width="256" height="256" loading="lazy" decoding="async">
         </div>
       </div>
-      <div class="rings-out rings-mean">
-        <p class="rings-lbl">Pointwise mean</p>
-        <img src="assets/figures/barycenter-pointwise-mean.webp" width="512" height="512" loading="lazy" decoding="async"
-             alt="Pointwise mean of the eight rings: a smeared, broken blur with a washed-out interior.">
-        <p class="rings-d">A blur that matches none of the inputs.</p>
-      </div>
-      <div class="rings-out rings-bary">
-        <p class="rings-lbl">Wasserstein barycenter</p>
-        <img src="assets/figures/barycenter-wasserstein.webp" width="512" height="512" loading="lazy" decoding="async"
-             alt="Wasserstein barycenter of the same eight rings: one sharp, well-defined ring.">
-        <p class="rings-d">One sharp ring, at the consensus position.</p>
-      </div>
-      <figcaption id="rings-cap"><span class="fig-n">The idea in one picture</span>Both averages take the same eight distributions. Only the space in which the average is taken changes.</figcaption>
-    </figure>
 
-    <figure class="demo" data-demo data-reveal aria-labelledby="demo-cap">
-      <div class="demo-head">
-        <p class="demo-title">Pull the copies apart</p>
-        <ul class="demo-key" aria-hidden="true">
-          <li><span class="key key-copy"></span>eight copies</li>
-          <li><span class="key key-mean"></span>pointwise mean</li>
-          <li><span class="key key-bary"></span>Wasserstein barycenter</li>
-        </ul>
+      <div class="bary-arrow" aria-hidden="true">
+        <svg viewBox="0 0 34 34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h22"/><path d="M20 10l7 7-7 7"/></svg>
       </div>
-      <svg viewBox="0 0 960 260" class="curves demo-plot" role="img" aria-label="Eight displaced copies of a one-dimensional profile, their pointwise mean, and their Wasserstein barycenter. The slider below controls how far apart the copies are.">
-        <line class="base" x1="0" x2="960" y1="246" y2="246"/>
-        <path class="bary-fill" data-demo-bary-fill d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 246.0L160 246.0L168 246.0L176 246.0L184 246.0L192 246.0L200 246.0L208 246.0L216 246.0L224 246.0L232 246.0L240 246.0L248 246.0L256 246.0L264 245.9L272 245.9L280 245.8L288 245.7L296 245.4L304 244.9L312 244.1L320 242.9L328 241.1L336 238.3L344 234.3L352 228.7L360 221.1L368 211.1L376 198.5L384 183.1L392 165.0L400 144.6L408 122.4L416 99.6L424 77.3L432 57.0L440 39.9L448 27.3L456 20.0L464 18.0L472 20.7L480 26.5L488 33.0L496 37.7L504 38.4L512 35.0L520 29.2L528 25.0L536 26.9L544 38.8L552 61.4L560 92.4L568 127.5L576 161.4L584 190.2L592 212.0L600 226.8L608 235.9L616 241.1L624 243.7L632 245.0L640 245.6L648 245.8L656 245.9L664 246.0L672 246.0L680 246.0L688 246.0L696 246.0L704 246.0L712 246.0L720 246.0L728 246.0L736 246.0L744 246.0L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0L960 246L0 246Z"/>
-        <g class="copies"><path data-demo-copy d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 245.9L136 245.9L144 245.8L152 245.6L160 245.3L168 244.8L176 244.0L184 242.7L192 240.9L200 238.2L208 234.4L216 229.2L224 222.3L232 213.3L240 202.0L248 188.4L256 172.4L264 154.2L272 134.5L280 113.9L288 93.4L296 74.0L304 57.0L312 43.4L320 34.1L328 29.4L336 29.3L344 32.8L352 38.5L360 44.2L368 47.9L376 48.2L384 44.8L392 39.5L400 35.6L408 36.8L416 46.4L424 65.3L432 92.1L440 123.4L448 155.0L456 183.1L464 205.5L472 221.7L480 232.4L488 238.9L496 242.5L504 244.3L512 245.3L520 245.7L528 245.9L536 245.9L544 246.0L552 246.0L560 246.0L568 246.0L576 246.0L584 246.0L592 246.0L600 246.0L608 246.0L616 246.0L624 246.0L632 246.0L640 246.0L648 246.0L656 246.0L664 246.0L672 246.0L680 246.0L688 246.0L696 246.0L704 246.0L712 246.0L720 246.0L728 246.0L736 246.0L744 246.0L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/><path data-demo-copy d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 246.0L160 246.0L168 246.0L176 246.0L184 246.0L192 245.9L200 245.9L208 245.8L216 245.6L224 245.2L232 244.6L240 243.6L248 242.0L256 239.4L264 235.5L272 229.9L280 222.1L288 211.6L296 197.9L304 181.0L312 160.7L320 137.6L328 112.5L336 86.7L344 61.8L352 39.5L360 21.6L368 9.5L376 3.9L384 4.4L392 9.8L400 17.2L408 23.3L416 25.4L424 22.3L432 15.9L440 10.9L448 13.3L456 27.6L464 54.7L472 91.2L480 131.0L488 167.8L496 197.4L504 218.4L512 231.6L520 239.1L528 242.9L536 244.7L544 245.5L552 245.8L560 245.9L568 246.0L576 246.0L584 246.0L592 246.0L600 246.0L608 246.0L616 246.0L624 246.0L632 246.0L640 246.0L648 246.0L656 246.0L664 246.0L672 246.0L680 246.0L688 246.0L696 246.0L704 246.0L712 246.0L720 246.0L728 246.0L736 246.0L744 246.0L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/><path data-demo-copy d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 246.0L160 246.0L168 246.0L176 246.0L184 246.0L192 246.0L200 246.0L208 246.0L216 246.0L224 245.9L232 245.8L240 245.7L248 245.4L256 245.0L264 244.3L272 243.2L280 241.6L288 239.1L296 235.6L304 230.6L312 223.9L320 215.1L328 203.9L336 190.2L344 173.9L352 155.2L360 134.7L368 113.2L376 91.6L384 71.1L392 53.1L400 38.7L408 28.9L416 24.1L424 24.1L432 28.0L440 34.0L448 39.9L456 43.4L464 43.0L472 38.9L480 33.3L488 30.1L496 33.4L504 46.3L512 69.0L520 99.2L528 132.6L536 164.7L544 191.9L552 212.6L560 226.9L568 235.8L576 240.9L584 243.6L592 244.9L600 245.5L608 245.8L616 245.9L624 246.0L632 246.0L640 246.0L648 246.0L656 246.0L664 246.0L672 246.0L680 246.0L688 246.0L696 246.0L704 246.0L712 246.0L720 246.0L728 246.0L736 246.0L744 246.0L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/><path data-demo-copy d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 246.0L160 246.0L168 246.0L176 246.0L184 246.0L192 246.0L200 246.0L208 246.0L216 246.0L224 246.0L232 246.0L240 246.0L248 246.0L256 246.0L264 245.9L272 245.8L280 245.7L288 245.4L296 244.9L304 244.2L312 242.9L320 241.0L328 238.1L336 234.0L344 228.1L352 220.0L360 209.5L368 196.1L376 179.7L384 160.5L392 139.0L400 115.7L408 92.0L416 69.1L424 48.5L432 31.8L440 20.2L448 14.2L456 13.8L464 17.9L472 24.5L480 30.9L488 34.3L496 33.2L504 28.2L512 22.3L520 20.4L528 27.2L536 45.4L544 74.2L552 109.5L560 145.9L568 178.3L576 203.9L584 221.9L592 233.2L600 239.7L608 243.1L616 244.7L624 245.5L632 245.8L640 245.9L648 246.0L656 246.0L664 246.0L672 246.0L680 246.0L688 246.0L696 246.0L704 246.0L712 246.0L720 246.0L728 246.0L736 246.0L744 246.0L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/><path data-demo-copy d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 246.0L160 246.0L168 246.0L176 246.0L184 246.0L192 246.0L200 246.0L208 246.0L216 246.0L224 246.0L232 246.0L240 246.0L248 246.0L256 246.0L264 246.0L272 246.0L280 245.9L288 245.8L296 245.7L304 245.5L312 245.1L320 244.5L328 243.6L336 242.2L344 240.1L352 237.2L360 233.0L368 227.4L376 220.0L384 210.6L392 198.9L400 184.8L408 168.5L416 150.3L424 130.6L432 110.3L440 90.3L448 71.8L456 55.7L464 43.2L472 34.9L480 31.1L488 31.7L496 35.6L504 41.3L512 46.8L520 50.1L528 49.8L536 46.2L544 41.0L552 37.4L560 39.2L568 49.3L576 68.5L584 95.2L592 126.0L600 156.9L608 184.3L616 206.2L624 222.1L632 232.5L640 238.9L648 242.5L656 244.3L664 245.2L672 245.7L680 245.8L688 245.9L696 246.0L704 246.0L712 246.0L720 246.0L728 246.0L736 246.0L744 246.0L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/><path data-demo-copy d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 246.0L160 246.0L168 246.0L176 246.0L184 246.0L192 246.0L200 246.0L208 246.0L216 246.0L224 246.0L232 246.0L240 246.0L248 246.0L256 246.0L264 246.0L272 246.0L280 246.0L288 246.0L296 246.0L304 246.0L312 246.0L320 246.0L328 245.9L336 245.9L344 245.7L352 245.5L360 245.1L368 244.4L376 243.2L384 241.4L392 238.6L400 234.5L408 228.6L416 220.5L424 209.8L432 196.1L440 179.2L448 159.3L456 136.9L464 112.6L472 87.9L480 64.1L488 42.9L496 26.0L504 14.4L512 9.0L520 9.4L528 14.3L536 21.3L544 27.5L552 30.0L560 27.7L568 21.8L576 16.3L584 16.8L592 27.8L600 51.0L608 84.2L616 122.1L624 158.8L632 189.7L640 212.6L648 227.8L656 236.9L664 241.7L672 244.1L680 245.2L688 245.7L696 245.9L704 245.9L712 246.0L720 246.0L728 246.0L736 246.0L744 246.0L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/><path data-demo-copy d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 246.0L160 246.0L168 246.0L176 246.0L184 246.0L192 246.0L200 246.0L208 246.0L216 246.0L224 246.0L232 246.0L240 246.0L248 246.0L256 246.0L264 246.0L272 246.0L280 246.0L288 246.0L296 246.0L304 246.0L312 246.0L320 246.0L328 246.0L336 246.0L344 246.0L352 245.9L360 245.9L368 245.8L376 245.6L384 245.2L392 244.7L400 243.8L408 242.4L416 240.3L424 237.1L432 232.7L440 226.6L448 218.4L456 207.9L464 194.7L472 178.8L480 160.3L488 139.8L496 117.8L504 95.4L512 73.9L520 54.6L528 38.8L536 27.5L544 21.4L552 20.5L560 23.8L568 29.8L576 36.1L584 40.1L592 40.3L600 36.4L608 30.7L616 27.0L624 29.8L632 42.5L640 65.5L648 96.4L656 130.8L664 163.8L672 191.8L680 212.9L688 227.3L696 236.1L704 241.1L712 243.7L720 245.0L728 245.6L736 245.8L744 245.9L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/><path data-demo-copy d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 246.0L160 246.0L168 246.0L176 246.0L184 246.0L192 246.0L200 246.0L208 246.0L216 246.0L224 246.0L232 246.0L240 246.0L248 246.0L256 246.0L264 246.0L272 246.0L280 246.0L288 246.0L296 246.0L304 246.0L312 246.0L320 246.0L328 246.0L336 246.0L344 246.0L352 246.0L360 246.0L368 246.0L376 246.0L384 245.9L392 245.8L400 245.7L408 245.5L416 245.0L424 244.3L432 243.1L440 241.3L448 238.6L456 234.5L464 228.8L472 221.0L480 210.7L488 197.5L496 181.3L504 162.2L512 140.6L520 117.2L528 93.2L536 70.0L544 49.0L552 31.8L560 19.6L568 13.2L576 12.5L584 16.5L592 23.1L600 29.5L608 33.1L616 32.2L624 27.2L632 21.2L640 19.2L648 26.0L656 44.3L664 73.3L672 109.0L680 145.8L688 178.5L696 204.2L704 222.1L712 233.4L720 239.8L728 243.2L736 244.8L744 245.5L752 245.8L760 245.9L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/></g>
-        <path class="mean" data-demo-mean d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 245.9L160 245.9L168 245.8L176 245.7L184 245.6L192 245.4L200 245.0L208 244.5L216 243.8L224 242.9L232 241.7L240 240.2L248 238.2L256 235.8L264 233.0L272 229.7L280 225.9L288 221.7L296 217.0L304 212.0L312 206.8L320 201.3L328 195.7L336 190.0L344 184.3L352 178.5L360 172.5L368 166.3L376 159.8L384 153.0L392 146.2L400 139.5L408 133.2L416 127.6L424 122.8L432 118.8L440 115.7L448 113.8L456 112.8L464 112.5L472 112.4L480 111.7L488 110.4L496 108.4L504 106.3L512 104.8L520 104.4L528 105.6L536 108.2L544 112.0L552 116.7L560 121.9L568 127.5L576 133.8L584 140.7L592 148.4L600 156.4L608 164.1L616 171.3L624 177.7L632 183.7L640 190.0L648 197.1L656 205.0L664 213.5L672 221.8L680 229.2L688 235.2L696 239.5L704 242.4L712 244.1L720 245.1L728 245.6L736 245.8L744 245.9L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/>
-        <path class="bary" data-demo-bary d="M0 246.0L8 246.0L16 246.0L24 246.0L32 246.0L40 246.0L48 246.0L56 246.0L64 246.0L72 246.0L80 246.0L88 246.0L96 246.0L104 246.0L112 246.0L120 246.0L128 246.0L136 246.0L144 246.0L152 246.0L160 246.0L168 246.0L176 246.0L184 246.0L192 246.0L200 246.0L208 246.0L216 246.0L224 246.0L232 246.0L240 246.0L248 246.0L256 246.0L264 245.9L272 245.9L280 245.8L288 245.7L296 245.4L304 244.9L312 244.1L320 242.9L328 241.1L336 238.3L344 234.3L352 228.7L360 221.1L368 211.1L376 198.5L384 183.1L392 165.0L400 144.6L408 122.4L416 99.6L424 77.3L432 57.0L440 39.9L448 27.3L456 20.0L464 18.0L472 20.7L480 26.5L488 33.0L496 37.7L504 38.4L512 35.0L520 29.2L528 25.0L536 26.9L544 38.8L552 61.4L560 92.4L568 127.5L576 161.4L584 190.2L592 212.0L600 226.8L608 235.9L616 241.1L624 243.7L632 245.0L640 245.6L648 245.8L656 245.9L664 246.0L672 246.0L680 246.0L688 246.0L696 246.0L704 246.0L712 246.0L720 246.0L728 246.0L736 246.0L744 246.0L752 246.0L760 246.0L768 246.0L776 246.0L784 246.0L792 246.0L800 246.0L808 246.0L816 246.0L824 246.0L832 246.0L840 246.0L848 246.0L856 246.0L864 246.0L872 246.0L880 246.0L888 246.0L896 246.0L904 246.0L912 246.0L920 246.0L928 246.0L936 246.0L944 246.0L952 246.0L960 246.0"/>
-      </svg>
-      <div class="demo-ctrl">
-        <label class="demo-slider">
-          <span class="demo-lbl">How far the copies are displaced</span>
-          <input type="range" min="0" max="100" step="0.5" value="62">
-          <span class="demo-ticks" aria-hidden="true"><span>in place</span><span>far apart</span></span>
-        </label>
-        <div class="demo-res">
-          <p class="demo-lbl">Height of the peak that survives</p>
-          <dl class="demo-out">
-            <div><dt>pointwise mean</dt><dd data-demo-out-mean>62 %</dd></div>
-            <div class="is-bary"><dt>barycenter</dt><dd data-demo-out-bary>100 %</dd></div>
-          </dl>
-        </div>
-      </div>
-      <figcaption id="demo-cap"><span class="fig-n">Schematic, in one dimension</span>With the copies in place the two averages agree, which is why SmoothGrad works when noise only changes values. Pull them apart and the pointwise mean flattens while the barycenter keeps its shape and settles at the average position.</figcaption>
-    </figure>
 
-    <div class="formal" data-reveal>
-      <p class="eq eq-display"><span class="m">μ</span><sup class="m-sup">∗</sup> <span class="m-op">=</span> <span class="m-under"><span class="m-opname">arg&thinsp;min</span><span class="u m">μ</span></span> <span class="m-big">∑</span><sub class="m-sub"><i>i</i></sub> <span class="m">W</span><span class="m-ss"><span>2</span><span>2</span></span>(<span class="m">μ</span>, <span class="m">μ</span><sub class="m-sub"><i>i</i></sub>)</p>
-      <p class="formal-d">The Fréchet mean in Wasserstein space, where <span class="m">W</span><sub class="m-sub">2</sub> is the cost of moving one distribution of mass onto another.</p>
+      <div class="bary-outs">
+        <figure class="bary-out bad">
+          <img src="assets/figures/barycenter-pointwise-mean.webp" alt="Pointwise mean of the eight rings: a smeared, broken annulus with a washed-out interior." width="512" height="512" loading="lazy" decoding="async">
+          <span class="t">Pointwise mean</span>
+          <p class="d">Structure destroyed. The ring is smeared into a blur that matches none of the inputs.</p>
+        </figure>
+        <figure class="bary-out good">
+          <img src="assets/figures/barycenter-wasserstein.webp" alt="Wasserstein barycenter of the same eight rings: a single sharp, well-defined annulus." width="512" height="512" loading="lazy" decoding="async">
+          <span class="t">Wasserstein barycenter</span>
+          <p class="d">Structure preserved. One sharp ring — the geometric consensus of the inputs.</p>
+        </figure>
+      </div>
+    </div>
+    <p class="caption">Both panels aggregate the <em>same</em> eight measures. The only thing that changes is whether the average is taken in pixel space or in Wasserstein space.</p>
+
+    <div class="callout" data-reveal>
+      <span class="who">The move</span>
+      <p>Map each attribution map to a spatial probability measure <span class="math">μ<sub>i</sub></span> ∝ |<span class="math">G<sub>i</sub></span>| — absolute value, then <span class="math">ℓ</span><sub>1</sub> normalisation, which preserves the magnitude of both positive and negative evidence while satisfying the positivity and mass-conservation constraints of optimal transport. Then replace the pointwise mean with the <strong>Fréchet mean in Wasserstein space</strong>: <span class="math">μ*</span> = arg&nbsp;min<sub>μ</sub> Σ<sub>i</sub> <span class="math">W</span><sub>2</sub><sup>2</sup>(μ, μ<sub>i</sub>).</p>
     </div>
   </div>
 </section>
 
-<!-- ============================================================== 04 METHOD -->
-<section class="sect" id="method" aria-labelledby="method-h">
-  <div class="wrap grid">
-    <p class="sect-mark" data-n="04">The method</p>
-    <h2 class="statement" id="method-h">WassersteinGrad keeps SmoothGrad's sampling and <em>replaces its average.</em></h2>
-
-    <ol class="flow" data-reveal aria-label="WassersteinGrad in five steps">
-      <li class="flow-step">
-        <p class="flow-n"><span>01</span>Perturb</p>
-        <svg class="glyph" viewBox="0 0 132 88" aria-hidden="true">
-          <g class="tile"><rect x="1" y="24" width="40" height="40"/><path class="iso" d="M3 40c9-8 16 4 24-3s9-6 12-4M3 52c9-6 17 3 25-2s8-4 11-3"/><g class="dots"><circle cx="9" cy="31" r=".9"/><circle cx="30" cy="30" r=".9"/><circle cx="19" cy="45" r=".9"/><circle cx="35" cy="58" r=".9"/><circle cx="12" cy="59" r=".9"/></g></g>
-          <g class="tile"><rect x="46" y="24" width="40" height="40"/><path class="iso" d="M48 41c9-9 15 5 24-3s9-5 12-3M48 53c9-5 16 2 25-3s8-3 11-2"/><g class="dots"><circle cx="56" cy="29" r=".9"/><circle cx="77" cy="33" r=".9"/><circle cx="62" cy="47" r=".9"/><circle cx="80" cy="57" r=".9"/><circle cx="52" cy="60" r=".9"/></g></g>
-          <g class="tile"><rect x="91" y="24" width="40" height="40"/><path class="iso" d="M93 39c9-7 16 3 24-3s9-7 12-4M93 51c9-6 17 4 25-1s8-5 11-4"/><g class="dots"><circle cx="98" cy="33" r=".9"/><circle cx="121" cy="29" r=".9"/><circle cx="108" cy="44" r=".9"/><circle cx="125" cy="55" r=".9"/><circle cx="101" cy="58" r=".9"/></g></g>
-        </svg>
-        <p class="flow-eq"><span class="m">x</span> + <span class="m">ε<sub>i</sub></span>,&ensp;<span class="m">ε<sub>i</sub></span> ∼ <span class="m">𝒩</span>(0, <span class="m">σ</span><sup>2</sup><b class="m-up">I</b>)</p>
-        <p class="flow-d"><span class="m">N</span>&nbsp;=&nbsp;20 noisy copies of one input field. The other channels stay clean.</p>
-      </li>
-      <li class="flow-step">
-        <p class="flow-n"><span>02</span>Gradients</p>
-        <svg class="glyph" viewBox="0 0 132 88" aria-hidden="true">
-          <g class="tile"><rect x="1" y="24" width="40" height="40"/><ellipse class="neg" cx="13" cy="46" rx="4.5" ry="3.2"/><ellipse class="pos" cx="19" cy="42" rx="4" ry="3"/><ellipse class="pos" cx="15" cy="51" rx="2.4" ry="1.8"/><rect class="roi" x="28" y="32" width="5" height="5"/></g>
-          <g class="tile"><rect x="46" y="24" width="40" height="40"/><ellipse class="neg" cx="63" cy="40" rx="4.5" ry="3.2"/><ellipse class="pos" cx="69" cy="37" rx="4" ry="3"/><ellipse class="neg" cx="66" cy="46" rx="2.4" ry="1.8"/><rect class="roi" x="73" y="32" width="5" height="5"/></g>
-          <g class="tile"><rect x="91" y="24" width="40" height="40"/><ellipse class="neg" cx="104" cy="52" rx="4.5" ry="3.2"/><ellipse class="pos" cx="110" cy="49" rx="4" ry="3"/><ellipse class="pos" cx="102" cy="45" rx="2.4" ry="1.8"/><rect class="roi" x="118" y="32" width="5" height="5"/></g>
-        </svg>
-        <p class="flow-eq"><span class="m">G<sub>i</sub></span> = ∇<sub class="m-sub"><i>x</i></sub> <span class="m">𝒴</span>(<span class="m">x</span> + <span class="m">ε<sub>i</sub></span>)</p>
-        <p class="flow-d">Backpropagated through every autoregressive step to the target box. They disagree on position.</p>
-      </li>
-      <li class="flow-step">
-        <p class="flow-n"><span>03</span>Measures</p>
-        <svg class="glyph" viewBox="0 0 132 88" aria-hidden="true">
-          <defs><radialGradient id="mass"><stop offset="0" stop-color="#2344d4" stop-opacity=".85"/><stop offset=".55" stop-color="#2344d4" stop-opacity=".35"/><stop offset="1" stop-color="#2344d4" stop-opacity="0"/></radialGradient></defs>
-          <g class="tile"><rect x="1" y="24" width="40" height="40"/><circle fill="url(#mass)" cx="16" cy="46" r="10"/><rect class="roi" x="28" y="32" width="5" height="5"/></g>
-          <g class="tile"><rect x="46" y="24" width="40" height="40"/><circle fill="url(#mass)" cx="66" cy="40" r="10"/><rect class="roi" x="73" y="32" width="5" height="5"/></g>
-          <g class="tile"><rect x="91" y="24" width="40" height="40"/><circle fill="url(#mass)" cx="106" cy="50" r="10"/><rect class="roi" x="118" y="32" width="5" height="5"/></g>
-        </svg>
-        <p class="flow-eq"><span class="m">μ<sub>i</sub></span> = |<span class="m">G<sub>i</sub></span>| ⁄ ‖<span class="m">G<sub>i</sub></span>‖<sub class="m-sub">1</sub></p>
-        <p class="flow-d">Each map becomes a distribution of mass over the grid, keeping positive and negative evidence alike.</p>
-      </li>
-      <li class="flow-step is-key">
-        <p class="flow-n"><span>04</span>Barycenter</p>
-        <svg class="glyph" viewBox="0 0 132 88" aria-hidden="true">
-          <g class="tile"><rect x="36" y="4" width="60" height="60"/>
-            <circle class="ghost" cx="52" cy="40" r="10"/><circle class="ghost" cx="67" cy="31" r="10"/><circle class="ghost" cx="62" cy="46" r="10"/>
-            <circle fill="url(#mass)" cx="60.3" cy="39" r="12.5"/>
-            <rect class="roi" x="80" y="20" width="6" height="6"/>
-          </g>
-          <text class="glyph-t" x="66" y="80">N → 1</text>
-        </svg>
-        <p class="flow-eq"><span class="m">μ</span><span class="m-ss"><span>∗</span><span><i>λ</i></span></span> = <span class="m-opname">arg&thinsp;min</span><sub class="m-sub"><i>μ</i></sub> ∑<sub class="m-sub"><i>i</i></sub> <span class="m">W</span><span class="m-ss"><span>2</span><span><i>λ</i></span></span>(<span class="m">μ</span>, <span class="m">μ<sub>i</sub></span>)</p>
-        <p class="flow-d">The entropic Wasserstein barycenter, solved with convolutional Sinkhorn.</p>
-      </li>
-      <li class="flow-step">
-        <p class="flow-n"><span>05</span>Explanation</p>
-        <div class="glyph glyph-map"><img class="mult" src="assets/figures/map-wgbary-t1.webp" width="660" height="526" alt="" loading="lazy" decoding="async"></div>
-        <p class="flow-eq"><span class="m">G<sub>W</sub></span> = <span class="m">μ</span><span class="m-ss"><span>∗</span><span><i>λ</i></span></span></p>
-        <p class="flow-d">One coherent region of influence, in the consensus position.</p>
-      </li>
-    </ol>
-
-    <div class="diff" data-reveal>
-      <p class="diff-k label">The one line that changes</p>
-      <div class="diff-row is-old">
-        <span class="diff-sign" aria-hidden="true">−</span>
-        <span class="diff-name">SmoothGrad</span>
-        <span class="diff-eq"><span class="m">G</span> = <span class="m-frac"><span>1</span><span><i class="m">N</i></span></span> ∑<sub class="m-sub"><i>i</i></sub> <span class="m">G<sub>i</sub></span></span>
-        <span class="diff-what">average the values</span>
-      </div>
-      <div class="diff-row is-new">
-        <span class="diff-sign" aria-hidden="true">+</span>
-        <span class="diff-name">WassersteinGrad</span>
-        <span class="diff-eq"><span class="m">μ</span><sup class="m-sup">∗</sup> = <span class="m-opname">arg&thinsp;min</span><sub class="m-sub"><i>μ</i></sub> ∑<sub class="m-sub"><i>i</i></sub> <span class="m">W</span><span class="m-ss"><span>2</span><span><i>λ</i></span></span>(<span class="m">μ</span>, <span class="m">μ<sub>i</sub></span>)</span>
-        <span class="diff-what">average the geometry</span>
-      </div>
-      <details class="diff-more">
-        <summary>Implementation details</summary>
-        <dl class="spec">
-          <div><dt>Target</dt><dd>𝒴 is the output channel (surface rain) reduced over the box <span class="m">ℬ</span> by a differentiable operator <span class="m">φ</span>, here the spatial mean, after <span class="m">T</span> autoregressive steps.</dd></div>
-          <div><dt>Noise</dt><dd>Only the selected input channel is perturbed, with <span class="m">σ</span>&nbsp;=&nbsp;0.2&nbsp;×&nbsp;(max&nbsp;<span class="m">x</span>&nbsp;−&nbsp;min&nbsp;<span class="m">x</span>) and <span class="m">N</span>&nbsp;=&nbsp;20 samples.</dd></div>
-          <div><dt>Measure</dt><dd>Absolute value, then ℓ<sub>1</sub> normalisation: it keeps the magnitude of positive and negative evidence while meeting the positivity and mass-conservation constraints of optimal transport.</dd></div>
-          <div><dt>Solver</dt><dd>An exact barycenter is prohibitive on a 512&nbsp;×&nbsp;640 grid. The entropic barycenter, with Sinkhorn regularisation <span class="m">λ</span>&nbsp;=&nbsp;0.001, is solved efficiently with convolutional Sinkhorn iterations.</dd></div>
-          <div><dt>Cost</dt><dd>1.96× the wall-time of SmoothGrad (14.6&nbsp;s against 7.4&nbsp;s per sample) on a single 16&nbsp;GB laptop GPU; 1.13× at <span class="m">λ</span>&nbsp;=&nbsp;0.01.</dd></div>
-        </dl>
-      </details>
+<!-- ==================================================== METHOD ============ -->
+<section id="method" class="band">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">05 — The method</p>
+      <h2>WassersteinGrad</h2>
+      <p class="lede">A drop-in replacement for SmoothGrad's aggregation step. Everything up to the averaging is unchanged; only the last line differs.</p>
     </div>
 
-    <div class="variants-head">
-      <h3 class="sub-h">Two readings of the barycenter</h3>
-      <p>The barycenter itself is the most robust explanation, but it has no sign. Multiplying it back onto the plain gradient restores sign and sparsity.</p>
-    </div>
-
-    <figure class="veq" data-reveal aria-labelledby="veq-cap">
-      <div class="veq-term is-wg">
-        <div class="veq-img"><img class="mult" src="assets/figures/map-wgbary-t1.webp" data-src-t1="assets/figures/map-wgbary-t1.webp" data-src-t5="assets/figures/map-wgbary-t5.webp" width="660" height="526" loading="lazy" decoding="async"
-             alt="WG Bary: the barycenter as the explanation, a smooth red region of influence."></div>
-        <p class="veq-name">WG<sub>Bary</sub></p>
-        <p class="veq-eq"><span class="m">μ</span><span class="m-ss"><span>∗</span><span><i>λ</i></span></span></p>
-        <p class="veq-d">The barycenter is the explanation. Maximally robust, sign-free.</p>
-      </div>
-      <div class="veq-term">
-        <div class="veq-img"><span class="veq-op" aria-hidden="true">×</span><img class="mult" src="assets/figures/map-basegrad-t1.webp" data-src-t1="assets/figures/map-basegrad-t1.webp" data-src-t5="assets/figures/map-basegrad-t5.webp" width="660" height="526" loading="lazy" decoding="async"
-             alt="The plain gradient of the unperturbed input: sparse red and blue speckle."></div>
-        <p class="veq-name">Gradient</p>
-        <p class="veq-eq">∇<sub class="m-sub"><i>x</i></sub><span class="m">φ</span></p>
-        <p class="veq-d">The plain gradient on the clean input: signed, but unstable.</p>
-      </div>
-      <div class="veq-term is-wg">
-        <div class="veq-img"><span class="veq-op" aria-hidden="true">=</span><img class="mult" src="assets/figures/map-wgbarygrad-t1.webp" data-src-t1="assets/figures/map-wgbarygrad-t1.webp" data-src-t5="assets/figures/map-wgbarygrad-t5.webp" width="660" height="526" loading="lazy" decoding="async"
-             alt="WG Bary×Grad: the barycenter used as a mask on the gradient, a concentrated signed map."></div>
-        <p class="veq-name">WG<sub>Bary×Grad</sub></p>
-        <p class="veq-eq"><span class="m">μ</span><span class="m-ss"><span>∗</span><span><i>λ</i></span></span> × ∇<sub class="m-sub"><i>x</i></sub><span class="m">φ</span></p>
-        <p class="veq-d">The barycenter localises, the gradient restores sign and contrast. Sparse and signed.</p>
-      </div>
-      <figcaption id="veq-cap"><span class="fig-n">Paper · Fig. 2</span>Same forecast as at the top of the page, <span data-lead-text data-lead-text-t1="t + 1" data-lead-text-t5="t + 5">t + 1</span>. The lead-time switch there also drives these maps.</figcaption>
-    </figure>
-  </div>
-</section>
-
-<!-- ============================================================= 05 RESULTS -->
-<section class="sect" id="results" aria-labelledby="results-h">
-  <div class="wrap grid">
-    <p class="sect-mark" data-n="05">Results</p>
-    <h2 class="statement" id="results-h">The explanation <em>stops moving.</em></h2>
-
-    <dl class="setting" aria-label="Experimental setting">
-      <div><dt>Data</dt><dd>TITAN, from Météo-France's AROME analyses</dd></div>
-      <div><dt>Grid</dt><dd>512 × 640 over France, ≈ 2.5 km, 21 channels</dd></div>
-      <div><dt>Model</dt><dd>UNetRPP, conv–attention U-Net (Py4cast)</dd></div>
-      <div><dt>Test</dt><dd>100 heavy-rain events of 2023, at t&nbsp;+&nbsp;1 and t&nbsp;+&nbsp;5</dd></div>
-    </dl>
-
-    <figure class="chart" data-chart data-reveal aria-labelledby="chart-h">
-      <div class="chart-head">
-        <p class="chart-h" id="chart-h">How much the pattern of the explanation changes under perturbation</p>
-        <p class="chart-sub">LLE<sub>cos</sub> ×10³, lower is better. The metric that measures displacement directly.</p>
-        <ul class="chart-key" aria-hidden="true">
-          <li><span class="dot d1"></span>t + 1, one step</li>
-          <li><span class="dot d5"></span>t + 5, autoregressive</li>
-        </ul>
-      </div>
-      <div class="chart-body">
-        <svg viewBox="0 0 640 300" class="dumbbell" role="group" aria-label="Dumbbell chart of LLE cos times 1000 at t+1 and t+5. BaseGrad 3.5 and 4.2; IntegratedGrad 2.9 and 6.3; SmoothGrad 2.1 and 2.6; VarGrad 2.3 and 3.0; WG Bary 0.1 and 0.2; WG Bary×Grad 3.6 and 4.3.">
-          <g class="grid-x" aria-hidden="true">
-            <line x1="150" x2="150" y1="10" y2="254"/><line x1="217.1" x2="217.1" y1="10" y2="254"/><line x1="284.3" x2="284.3" y1="10" y2="254"/><line x1="351.4" x2="351.4" y1="10" y2="254"/><line x1="418.6" x2="418.6" y1="10" y2="254"/><line x1="485.7" x2="485.7" y1="10" y2="254"/><line x1="552.9" x2="552.9" y1="10" y2="254"/><line x1="620" x2="620" y1="10" y2="254"/>
-            <text x="150" y="274">0</text><text x="217.1" y="274">1</text><text x="284.3" y="274">2</text><text x="351.4" y="274">3</text><text x="418.6" y="274">4</text><text x="485.7" y="274">5</text><text x="552.9" y="274">6</text><text x="620" y="274">7</text>
-          </g>
-          <g class="dumbbell-row" tabindex="0" role="img" data-name="BaseGrad" data-t1="3.5" data-t5="4.2" aria-label="BaseGrad: 3.5 at t+1, 4.2 at t+5">
-            <rect class="hit" x="0" y="12" width="640" height="38"/>
-            <text class="lbl" x="136" y="35">BaseGrad</text>
-            <line class="bar" x1="385" x2="432" y1="31" y2="31"/><circle class="d1" cx="385" cy="31" r="5"/><circle class="d5" cx="432" cy="31" r="5"/>
-          </g>
-          <g class="dumbbell-row" tabindex="0" role="img" data-name="IntegratedGrad" data-t1="2.9" data-t5="6.3" aria-label="IntegratedGrad: 2.9 at t+1, 6.3 at t+5">
-            <rect class="hit" x="0" y="50" width="640" height="38"/>
-            <text class="lbl" x="136" y="73">IntegratedGrad</text>
-            <line class="bar" x1="344.7" x2="573" y1="69" y2="69"/><circle class="d1" cx="344.7" cy="69" r="5"/><circle class="d5" cx="573" cy="69" r="5"/>
-          </g>
-          <g class="dumbbell-row is-ref" tabindex="0" role="img" data-name="SmoothGrad" data-t1="2.1" data-t5="2.6" aria-label="SmoothGrad: 2.1 at t+1, 2.6 at t+5">
-            <rect class="hit" x="0" y="88" width="640" height="38"/>
-            <text class="lbl" x="136" y="111">SmoothGrad</text>
-            <line class="bar" x1="291" x2="324.6" y1="107" y2="107"/><circle class="d1" cx="291" cy="107" r="5"/><circle class="d5" cx="324.6" cy="107" r="5"/>
-            <text class="val" x="338" y="111">2.1 → 2.6</text>
-          </g>
-          <g class="dumbbell-row" tabindex="0" role="img" data-name="VarGrad" data-t1="2.3" data-t5="3.0" aria-label="VarGrad: 2.3 at t+1, 3.0 at t+5">
-            <rect class="hit" x="0" y="126" width="640" height="38"/>
-            <text class="lbl" x="136" y="149">VarGrad</text>
-            <line class="bar" x1="304.4" x2="351.4" y1="145" y2="145"/><circle class="d1" cx="304.4" cy="145" r="5"/><circle class="d5" cx="351.4" cy="145" r="5"/>
-          </g>
-          <g class="dumbbell-row is-ours is-key" tabindex="0" role="img" data-name="WG Bary (ours)" data-t1="0.1" data-t5="0.2" aria-label="WG Bary, ours: 0.1 at t+1, 0.2 at t+5">
-            <rect class="hit" x="0" y="170" width="640" height="38"/>
-            <text class="lbl" x="136" y="193">WG<tspan class="lbl-sub" dy="3">Bary</tspan></text>
-            <line class="bar" x1="156.7" x2="163.4" y1="189" y2="189"/><circle class="d1" cx="156.7" cy="189" r="5"/><circle class="d5" cx="163.4" cy="189" r="5"/>
-            <text class="val val-key" x="178" y="193">0.1 → 0.2</text>
-          </g>
-          <g class="dumbbell-row is-ours" tabindex="0" role="img" data-name="WG Bary×Grad (ours)" data-t1="3.6" data-t5="4.3" aria-label="WG Bary×Grad, ours: 3.6 at t+1, 4.3 at t+5">
-            <rect class="hit" x="0" y="208" width="640" height="38"/>
-            <text class="lbl" x="136" y="231">WG<tspan class="lbl-sub" dy="3">Bary×Grad</tspan></text>
-            <line class="bar" x1="391.7" x2="438.7" y1="227" y2="227"/><circle class="d1" cx="391.7" cy="227" r="5"/><circle class="d5" cx="438.7" cy="227" r="5"/>
-          </g>
-          <line class="ours-rule" x1="10" x2="630" y1="167" y2="167" aria-hidden="true"/>
-          <text class="ours-tag" x="10" y="182" aria-hidden="true">ours</text>
-        </svg>
-        <div class="chart-tip" hidden></div>
-      </div>
-      <figcaption><span class="fig-n">Paper · Table 1</span>WG<sub>Bary</sub> is about 21× more stable than SmoothGrad at <span class="m">t</span>&nbsp;+&nbsp;1 and barely changes under autoregressive rollout, while every baseline gets worse. WG<sub>Bary×Grad</sub> inherits the gradient's own instability by construction: that is the price of recovering sign and sparsity.</figcaption>
-    </figure>
-
-    <dl class="facts" data-reveal>
-      <div class="is-key"><dt><span class="approx">≈</span>&thinsp;21×</dt><dd>more stable explanation structure than SmoothGrad at <span class="m">t</span>&nbsp;+&nbsp;1 (LLE<sub>cos</sub> 0.1 against 2.1). WG<sub>Bary</sub> is the most robust on both robustness metrics.</dd></div>
-      <div><dt>0.815</dt><dd>the best faithfulness (ROAD) at <span class="m">t</span>&nbsp;+&nbsp;1, and the best again at <span class="m">t</span>&nbsp;+&nbsp;5 with 0.762, for WG<sub>Bary</sub>.</dd></div>
-      <div><dt>0.750</dt><dd>the best sparsity (Gini) at <span class="m">t</span>&nbsp;+&nbsp;5, for WG<sub>Bary×Grad</sub>: sign-aware and spatially precise.</dd></div>
-      <div><dt>1.96×</dt><dd>the wall-time of SmoothGrad, on a single 16&nbsp;GB laptop GPU.</dd></div>
-    </dl>
-
-    <details class="table-more">
-      <summary>All methods, all metrics <span>Paper · Table 1</span></summary>
-      <div class="table-scroll" tabindex="0" role="region" aria-label="Table 1, scrollable">
-        <table class="results">
-          <caption class="visually-hidden">Attribution quality at one-step and autoregressive lead times, mean ± SEM over 100 events</caption>
-          <thead>
-            <tr class="group">
-              <th scope="col"></th>
-              <th scope="colgroup" colspan="4">One step · t + 1</th>
-              <th scope="colgroup" colspan="4">Autoregressive · t + 5</th>
-            </tr>
-            <tr>
-              <th scope="col">Method</th>
-              <th scope="col">Spar. ↑</th><th scope="col">Faith. ↑</th><th scope="col">LLE<sub>ℓ2</sub> ↓</th><th scope="col">LLE<sub>cos</sub> ↓</th>
-              <th scope="col">Spar. ↑</th><th scope="col">Faith. ↑</th><th scope="col">LLE<sub>ℓ2</sub> ↓</th><th scope="col">LLE<sub>cos</sub> ↓</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <th scope="row">BaseGrad</th>
-              <td>0.547<span class="sem">±.001</span></td><td>0.772<span class="sem">±.010</span></td><td>0.068<span class="sem">±.001</span></td><td>3.5<span class="sem">±0.07</span></td>
-              <td>0.531<span class="sem">±.002</span></td><td>0.714<span class="sem">±.019</span></td><td>0.128<span class="sem">±.006</span></td><td>4.2<span class="sem">±0.10</span></td>
-            </tr>
-            <tr>
-              <th scope="row">IntegratedGrad</th>
-              <td>0.628<span class="sem">±.004</span></td><td class="second">0.810<span class="sem">±.011</span></td><td>0.080<span class="sem">±.001</span></td><td>2.9<span class="sem">±0.10</span></td>
-              <td>0.632<span class="sem">±.004</span></td><td>0.739<span class="sem">±.018</span></td><td>0.087<span class="sem">±.006</span></td><td>6.3<span class="sem">±0.10</span></td>
-            </tr>
-            <tr>
-              <th scope="row">SmoothGrad</th>
-              <td>0.539<span class="sem">±.002</span></td><td>0.809<span class="sem">±.012</span></td><td>0.046<span class="sem">±.001</span></td><td class="second">2.1<span class="sem">±0.05</span></td>
-              <td>0.526<span class="sem">±.001</span></td><td>0.757<span class="sem">±.017</span></td><td>0.083<span class="sem">±.004</span></td><td class="second">2.6<span class="sem">±0.06</span></td>
-            </tr>
-            <tr>
-              <th scope="row">VarGrad</th>
-              <td class="best">0.871<span class="sem">±.004</span></td><td>0.809<span class="sem">±.012</span></td><td class="second">0.024<span class="sem">±.001</span></td><td>2.3<span class="sem">±0.06</span></td>
-              <td class="second">0.710<span class="sem">±.006</span></td><td>0.740<span class="sem">±.013</span></td><td class="second">0.058<span class="sem">±.004</span></td><td>3.0<span class="sem">±0.10</span></td>
-            </tr>
-            <tr class="ours first">
-              <th scope="row">WG<sub>Bary</sub></th>
-              <td>0.340<span class="sem">±.002</span></td><td class="best">0.815<span class="sem">±.011</span></td><td class="best">0.023<span class="sem">±.001</span></td><td class="best">0.1<span class="sem">±0.01</span></td>
-              <td>0.330<span class="sem">±.002</span></td><td class="best">0.762<span class="sem">±.016</span></td><td class="best">0.047<span class="sem">±.002</span></td><td class="best">0.2<span class="sem">±0.01</span></td>
-            </tr>
-            <tr class="ours">
-              <th scope="row">WG<sub>Bary×Grad</sub></th>
-              <td class="second">0.849<span class="sem">±.003</span></td><td>0.800<span class="sem">±.010</span></td><td>0.045<span class="sem">±.001</span></td><td>3.6<span class="sem">±0.08</span></td>
-              <td class="best">0.750<span class="sem">±.004</span></td><td class="second">0.760<span class="sem">±.017</span></td><td>0.075<span class="sem">±.004</span></td><td>4.3<span class="sem">±0.10</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="tbl-note"><span><b>Bold</b> best</span><span><u>Underline</u> second best</span><span>Mean ± SEM over <span class="m">n</span>&nbsp;=&nbsp;100 events</span><span>LLE<sub>cos</sub> ×10³</span></p>
-      <dl class="metrics">
-        <div><dt>Sparsity · Gini ↑</dt><dd>Spatial concentration. A map spread over the whole domain is hard for a forecaster to read, however faithful.</dd></div>
-        <div><dt>Faithfulness · ROAD ↑</dt><dd>Mask the most salient pixels by linear imputation and check that the prediction degrades more than under random masks of the same size.</dd></div>
-        <div><dt>Robustness · LLE ↓</dt><dd>Local Lipschitz estimate under bounded input perturbation. LLE<sub>ℓ2</sub> measures amplitude change; LLE<sub>cos</sub> normalises the maps first, so it measures change in spatial pattern.</dd></div>
-      </dl>
-    </details>
-
-    <div class="see">
-      <h3 class="sub-h">See it on the forecast</h3>
-      <figure class="see-fig" data-reveal>
-        <div class="compare" data-compare>
-          <img src="assets/figures/map-smoothgrad-t1.webp" data-src-t1="assets/figures/map-smoothgrad-t1.webp" data-src-t5="assets/figures/map-smoothgrad-t5.webp" width="660" height="526" loading="lazy" decoding="async"
-               alt="SmoothGrad explanation: fragmented red and blue speckle.">
-          <div class="compare-top">
-            <img src="assets/figures/map-wgbary-t1.webp" data-src-t1="assets/figures/map-wgbary-t1.webp" data-src-t5="assets/figures/map-wgbary-t5.webp" width="660" height="526" loading="lazy" decoding="async"
-                 alt="WassersteinGrad explanation: one coherent region of influence.">
-          </div>
-          <span class="compare-tag l">SmoothGrad</span>
-          <span class="compare-tag r">WassersteinGrad</span>
-          <div class="compare-handle" aria-hidden="true"></div>
-          <input type="range" min="0" max="100" value="50" aria-label="Wipe between SmoothGrad and WassersteinGrad">
-        </div>
-        <div class="see-ctrl">
-          <div class="seg" role="group" aria-label="Forecast lead time">
-            <button type="button" data-lead="t1" aria-pressed="true">t&nbsp;+&nbsp;1</button>
-            <button type="button" data-lead="t5" aria-pressed="false">t&nbsp;+&nbsp;5</button>
-          </div>
-          <figcaption><span class="hint-pointer">Move across the map</span><span class="hint-touch">Drag across the map</span> to wipe between the two.</figcaption>
-        </div>
-      </figure>
-      <div class="see-text">
-        <p>At <span class="m">t</span>&nbsp;+&nbsp;1, SmoothGrad leaves a speckle of opposite signs around the target; WassersteinGrad reports one region just upstream of Paris.</p>
-        <p>At <span class="m">t</span>&nbsp;+&nbsp;5 the difference sharpens. SmoothGrad fragments across Brittany with no stable organisation. WassersteinGrad still gives one coherent region, broader than at <span class="m">t</span>&nbsp;+&nbsp;1, which is the honest answer: uncertainty really is larger at longer horizons.</p>
-      </div>
-    </div>
-
-    <p class="closing" data-reveal>Methods built for photographs assume noise changes values. <em>On physical fields, it changes positions.</em></p>
-  </div>
-</section>
-
-<!-- ================================================================ 06 CITE -->
-<section class="sect cite" id="cite" aria-labelledby="cite-h">
-  <div class="wrap grid">
-    <p class="sect-mark" data-n="06">Citation</p>
-    <div class="cite-main">
-      <h2 class="cite-h" id="cite-h">Cite this work</h2>
-      <div class="bib">
-        <pre id="bibtex"><code>@inproceedings{essafouri2026wassersteingrad,
-  title     = {Explanation of Dynamic Physical Field Predictions using
-               WassersteinGrad: Application to Autoregressive
-               Weather Forecasting},
-  author    = {Essafouri, Younes and Raynaud, Laure and
-               Drozda, Luciano and Risser, Laurent},
-  booktitle = {Advances in Neural Information Processing Systems},
-  year      = {2026},
-  eprint    = {2604.22580},
-  archivePrefix = {arXiv}
-}</code></pre>
-        <button class="copy-btn" type="button" data-copy="bibtex">Copy BibTeX</button>
-      </div>
-      <ul class="links cite-links">
-        <li><a href="https://arxiv.org/pdf/2604.22580">Paper (PDF)</a></li>
-        <li><a href="https://arxiv.org/abs/2604.22580">arXiv:2604.22580</a></li>
-        <li><a href="https://github.com/meteofrance/py4cast">Code · Py4cast</a></li>
-        <li><a href="https://huggingface.co/datasets/meteofrance/titan">Data · TITAN</a></li>
-      </ul>
-    </div>
-
-    <div class="cite-side">
-      <div class="cite-block">
-        <h3 class="label">Authors</h3>
-        <ul class="people">
-          <li><a href="mailto:younes.essafouri@cnrs.fr">Younes Essafouri</a><sup>1</sup></li>
-          <li><a href="mailto:laure.raynaud@meteo.fr">Laure Raynaud</a><sup>2</sup></li>
-          <li><a href="mailto:drozda@cerfacs.fr">Luciano Drozda</a><sup>3</sup></li>
-          <li><a href="mailto:laurent.risser@cnrs.fr">Laurent Risser</a><sup>1</sup></li>
-        </ul>
-      </div>
-      <div class="cite-block">
-        <h3 class="label">Affiliations</h3>
-        <ol class="affil-list">
-          <li><sup>1</sup>Univ. Toulouse, INSA Toulouse, CNRS UMR 5219, IMT, Toulouse, France</li>
-          <li><sup>2</sup>Météo-France, CNRS, Univ. Toulouse, CNRM, Toulouse, France</li>
-          <li><sup>3</sup>Cerfacs, CNRS/Cerfacs/IRD, CECI, Toulouse, France</li>
+    <div class="setup-grid">
+      <div data-reveal>
+        <ol class="steps">
+          <li>
+            <h4>Perturb one channel</h4>
+            <p>Draw <span class="math">x̃<sub>in,i</sub></span> = <span class="math">x<sub>in</sub></span> + <span class="math">ε<sub>i</sub></span> with <span class="math">ε<sub>i</sub></span> ~ 𝒩(0, <span class="math">σ</span><sup>2</sup><b>I</b>). Only the selected input channel <span class="math">c<sub>in</sub></span> is replaced; the other 20 channels stay clean.</p>
+          </li>
+          <li>
+            <h4>Roll out and reduce</h4>
+            <p>Run the model autoregressively for <span class="math">T</span> steps, take the output channel <span class="math">c<sub>out</sub></span>, and reduce it over the region of interest with a differentiable operator <span class="math">φ</span> — here the spatial mean over the box.</p>
+          </li>
+          <li>
+            <h4>Differentiate</h4>
+            <p>Backpropagate through all <span class="math">T</span> compositions to get the raw gradient <span class="math">G<sub>i</sub></span> = ∇<sub>x̃<sub>in,i</sub></sub> 𝒴<sub>target,i</sub>.</p>
+          </li>
+          <li>
+            <h4>Convert to a measure</h4>
+            <p>Normalise <span class="math">μ<sub>i</sub></span> = |<span class="math">G<sub>i</sub></span>| / Σ|<span class="math">G<sub>i</sub></span>| so the map becomes a spatial probability density that optimal transport can act on.</p>
+          </li>
+          <li>
+            <h4>Take the barycenter</h4>
+            <p>Compute the <strong>entropic</strong> Wasserstein barycenter <span class="math">μ*<sub>λ</sub></span> with Sinkhorn regularisation <span class="math">λ</span> = 0.001. Exact barycenters are prohibitive on a 512 × 640 grid; the entropic form is solved efficiently with the convolutional Sinkhorn algorithm.</p>
+          </li>
         </ol>
-        <ul class="links links-sm">
-          <li><a href="https://www.math.univ-toulouse.fr/">IMT</a></li>
-          <li><a href="https://www.umr-cnrm.fr/">Météo-France · CNRM</a></li>
-          <li><a href="https://cerfacs.fr/">Cerfacs</a></li>
-          <li><a href="https://aniti.univ-toulouse.fr/">ANITI</a></li>
+      </div>
+
+      <div data-reveal>
+        <div class="callout is-red" style="margin-top:0">
+          <span class="who">Cost</span>
+          <p><strong>1.96×</strong> the wall-time of SmoothGrad at <span class="math">λ</span> = 0.001 (14.6&nbsp;s vs 7.4&nbsp;s per sample), on a single 16&nbsp;GB laptop GPU. At <span class="math">λ</span> = 0.01 the overhead falls to 1.13×.</p>
+        </div>
+
+        <h3 style="margin-top:2.2rem">Two variants</h3>
+        <div class="variant-grid">
+          <div class="variant">
+            <span class="name">WG<sub>Bary</sub></span>
+            <span class="formula">G<sub>W</sub> = μ*<sub>λ</sub></span>
+            <p>The barycenter <em>is</em> the attribution map. Maximally robust geometric consensus, at the cost of losing sign information.</p>
+          </div>
+          <div class="variant">
+            <span class="name">WG<sub>Bary×Grad</sub></span>
+            <span class="formula">G<sub>W</sub> = μ*<sub>λ</sub> × ∇<sub>x<sub>in</sub></sub>φ</span>
+            <p>The barycenter as a spatial mask on the base gradient. The barycenter supplies localisation; the gradient restores sign and amplitude contrast.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================== EXPERIMENTS ============ -->
+<section id="experiments">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">06 — Experimental setting</p>
+      <h2>Kilometre-scale forecasting over France, on a meteorologist-validated model.</h2>
+    </div>
+
+    <div class="setup-grid">
+      <div data-reveal>
+        <dl class="kv">
+          <dt>Dataset</dt>
+          <dd><b>TITAN</b> — derived from Météo-France's operational <b>AROME</b> limited-area model.</dd>
+          <dt>Resolution</dt>
+          <dd>0.025° ≈ <b>2.5 km</b>, regular lat–lon grid, <b>1-hour</b> analyses.</dd>
+          <dt>Domain</dt>
+          <dd>France subdomain, <b>512 × 640</b> grid points, <b>21 channels</b> (5 surface + 16 upper-air across 250/500/700/850&nbsp;hPa).</dd>
+          <dt>Model</dt>
+          <dd><b>UNetRPP</b>, a hybrid convolutional–attention U-Net trained with <b>Py4cast</b>, weights validated by meteorologists. Fixed-weight regime throughout.</dd>
+          <dt>Splits</dt>
+          <dd>Train 2020–2022 (1&nbsp;h step); test 2023 (3&nbsp;h step).</dd>
+          <dt>Explained pair</dt>
+          <dd>Total surface precipitation (<code>aro_tp_0m</code>) over a Paris ROI, with respect to zonal wind at 250&nbsp;hPa (<code>aro_u_250hpa</code>) — a canonical jet-stream / precipitation link.</dd>
+          <dt>Sampling</dt>
+          <dd><span class="math">N</span> = 20 perturbed samples, <span class="math">σ</span> = 0.2 × (max <span class="math">x<sub>t</sub></span> − min <span class="math">x<sub>t</sub></span>), Sinkhorn <span class="math">λ</span> = 0.001, seed 42.</dd>
+          <dt>Evaluation</dt>
+          <dd><b><span class="math">n</span> = 100</b> high-intensity precipitation events from the 2023 test split, at <span class="math">t</span>+1 and <span class="math">t</span>+5.</dd>
+        </dl>
+      </div>
+      <div data-reveal>
+        <figure class="fig" style="margin-top:0">
+          <img src="assets/figures/domain-map.webp" alt="Map of Western Europe showing the full AROME operational domain as a blue dashed rectangle and the smaller training and evaluation subdomain over France as a red solid rectangle." width="1100" height="862" loading="lazy" decoding="async">
+          <figcaption><span class="fig-label">Figure 3</span>Blue dashed: the full AROME operational domain. Red solid: the France subdomain used for training and evaluation.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="section-head" data-reveal style="margin-top:clamp(2.5rem,5vw,4rem)">
+      <h3>Metrics</h3>
+      <p>There is no ground truth for an attribution map, so quality is assessed on three independent axes.</p>
+    </div>
+
+    <div class="cards cards-3" data-reveal>
+      <div class="card">
+        <span class="card-num">Faithfulness ↑</span>
+        <h4>ROAD</h4>
+        <p>Mask the top-<span class="math">p</span>% salient pixels by linear imputation and check the prediction degrades more than under random masks of the same size. Reported as the AUC of that binary curve.</p>
+      </div>
+      <div class="card">
+        <span class="card-num">Robustness ↓</span>
+        <h4>Local Lipschitz estimate</h4>
+        <p><span class="math">LLE<sub>ℓ2</sub></span> measures amplitude sensitivity to bounded input perturbation. <span class="math">LLE<sub>cos</sub></span> normalises the maps first, so it measures <strong>structural</strong> — spatial pattern — change instead.</p>
+      </div>
+      <div class="card">
+        <span class="card-num">Complexity ↑</span>
+        <h4>Gini index</h4>
+        <p>Spatial concentration. A map spread across the whole domain is uninterpretable to a domain expert, however faithful it may be.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =================================================== RESULTS ============ -->
+<section id="results" class="band">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">07 — Results</p>
+      <h2>The spatial pattern stops moving.</h2>
+      <p class="lede"><span class="math">LLE<sub>cos</sub></span> is the metric that directly measures the failure mode: how much the <em>structure</em> of an explanation rotates under perturbation. This is where the gap is not incremental.</p>
+    </div>
+
+    <div class="bars" data-reveal>
+      <div class="bars-head">
+        <h4>Structural robustness under perturbation</h4>
+        <span class="unit">LLE<sub>cos</sub> ↓ &nbsp;(×10³) &nbsp;· lower is better · <span id="bars-lead">t + 1</span></span>
+      </div>
+      <div id="bars-body"></div>
+      <p class="caption" style="margin-top:1rem">At <span class="math">t</span>+1, WG<sub>Bary</sub> scores <b>0.1</b> against SmoothGrad's <b>2.1</b> — a <b>~21× reduction</b>. Under autoregressive rollout it degrades gracefully to <b>0.2</b> while every baseline gets worse. WG<sub>Bary×Grad</sub> scores worst on this axis by construction: multiplying the barycenter back onto the raw gradient reintroduces the gradient's own instability, which is the price of recovering sign and sparsity.</p>
+    </div>
+
+    <div class="stats" data-reveal>
+      <div class="stat is-red">
+        <span class="n">~21×</span>
+        <p class="k">Reduction in <b>LLE<sub>cos</sub></b> over SmoothGrad at <span class="math">t</span>+1. WG<sub>Bary</sub> is the lowest on <b>both</b> robustness metrics simultaneously.</p>
+      </div>
+      <div class="stat is-blue">
+        <span class="n">0.815<sub></sub></span>
+        <p class="k">Highest <b>faithfulness</b> (ROAD) at <span class="math">t</span>+1, and again at <span class="math">t</span>+5 with 0.762 — surpassing all baselines at both lead times.</p>
+      </div>
+      <div class="stat">
+        <span class="n">0.750</span>
+        <p class="k">Best <b>sparsity</b> (Gini) at <span class="math">t</span>+5 for WG<sub>Bary×Grad</sub>, second-best at <span class="math">t</span>+1 — sign-aware and spatially precise.</p>
+      </div>
+    </div>
+
+    <div class="table-scroll" data-reveal>
+      <table class="results">
+        <caption class="visually-hidden">Quantitative evaluation of attribution quality at one-step and autoregressive lead times</caption>
+        <thead>
+          <tr class="group">
+            <th scope="col"></th>
+            <th scope="colgroup" colspan="4" class="g">One-step (t + 1)</th>
+            <th scope="colgroup" colspan="4" class="g">Autoregressive (t + 5)</th>
+          </tr>
+          <tr>
+            <th scope="col">Method</th>
+            <th scope="col">Spar. ↑</th><th scope="col">Faith. ↑</th><th scope="col">LLE<sub>ℓ2</sub> ↓</th><th scope="col">LLE<sub>cos</sub> ↓</th>
+            <th scope="col">Spar. ↑</th><th scope="col">Faith. ↑</th><th scope="col">LLE<sub>ℓ2</sub> ↓</th><th scope="col">LLE<sub>cos</sub> ↓</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="name">BaseGrad</td>
+            <td class="m">0.547<span class="sem">±.001</span></td><td class="m">0.772<span class="sem">±.010</span></td><td class="m">0.068<span class="sem">±.001</span></td><td class="m">3.5<span class="sem">±0.07</span></td>
+            <td class="m">0.531<span class="sem">±.002</span></td><td class="m">0.714<span class="sem">±.019</span></td><td class="m">0.128<span class="sem">±.006</span></td><td class="m">4.2<span class="sem">±0.10</span></td>
+          </tr>
+          <tr>
+            <td class="name">IntegratedGrad</td>
+            <td class="m">0.628<span class="sem">±.004</span></td><td class="m second">0.810<span class="sem">±.011</span></td><td class="m">0.080<span class="sem">±.001</span></td><td class="m">2.9<span class="sem">±0.10</span></td>
+            <td class="m">0.632<span class="sem">±.004</span></td><td class="m">0.739<span class="sem">±.018</span></td><td class="m">0.087<span class="sem">±.006</span></td><td class="m">6.3<span class="sem">±0.10</span></td>
+          </tr>
+          <tr>
+            <td class="name">SmoothGrad</td>
+            <td class="m">0.539<span class="sem">±.002</span></td><td class="m">0.809<span class="sem">±.012</span></td><td class="m">0.046<span class="sem">±.001</span></td><td class="m second">2.1<span class="sem">±0.05</span></td>
+            <td class="m">0.526<span class="sem">±.001</span></td><td class="m">0.757<span class="sem">±.017</span></td><td class="m">0.083<span class="sem">±.004</span></td><td class="m second">2.6<span class="sem">±0.06</span></td>
+          </tr>
+          <tr>
+            <td class="name">VarGrad</td>
+            <td class="m best">0.871<span class="sem">±.004</span></td><td class="m">0.809<span class="sem">±.012</span></td><td class="m second">0.024<span class="sem">±.001</span></td><td class="m">2.3<span class="sem">±0.06</span></td>
+            <td class="m second">0.710<span class="sem">±.006</span></td><td class="m">0.740<span class="sem">±.013</span></td><td class="m second">0.058<span class="sem">±.004</span></td><td class="m">3.0<span class="sem">±0.10</span></td>
+          </tr>
+          <tr class="ours sep">
+            <td class="name">WG<sub>Bary</sub></td>
+            <td class="m">0.340<span class="sem">±.002</span></td><td class="m best">0.815<span class="sem">±.011</span></td><td class="m best">0.023<span class="sem">±.001</span></td><td class="m best">0.1<span class="sem">±0.01</span></td>
+            <td class="m">0.330<span class="sem">±.002</span></td><td class="m best">0.762<span class="sem">±.016</span></td><td class="m best">0.047<span class="sem">±.002</span></td><td class="m best">0.2<span class="sem">±0.01</span></td>
+          </tr>
+          <tr class="ours">
+            <td class="name">WG<sub>Bary×Grad</sub></td>
+            <td class="m second">0.849<span class="sem">±.003</span></td><td class="m">0.800<span class="sem">±.010</span></td><td class="m">0.045<span class="sem">±.001</span></td><td class="m">3.6<span class="sem">±0.08</span></td>
+            <td class="m best">0.750<span class="sem">±.004</span></td><td class="m second">0.760<span class="sem">±.017</span></td><td class="m">0.075<span class="sem">±.004</span></td><td class="m">4.3<span class="sem">±0.10</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="tbl-note">
+      <span><b style="color:var(--red)">Bold</b> = best</span>
+      <span><span class="second">Underline</span> = second best</span>
+      <span>Mean ± SEM over <span class="math">n</span> = 100 events</span>
+      <span>LLE<sub>cos</sub> reported ×10³</span>
+      <span>Sparsity: Gini · Faithfulness: ROAD · Robustness: LLE</span>
+    </p>
+
+    <div class="section-head" data-reveal style="margin-top:clamp(3rem,6vw,4.5rem)">
+      <h3>Side by side</h3>
+      <p>Drag to wipe between the pointwise average and the geometric consensus, on the same event and the same region of interest.</p>
+    </div>
+
+    <div class="compare-wrap" data-reveal>
+      <div>
+        <div class="compare" id="compare" role="slider" tabindex="0"
+             aria-label="Wipe between SmoothGrad and WassersteinGrad attribution maps"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-valuetext="50% WassersteinGrad">
+          <img src="assets/figures/map-smoothgrad-t5.webp" alt="SmoothGrad attribution at t+5: incoherent, fragmented patches spread across western France." width="660" height="526" loading="lazy" decoding="async" data-compare="base">
+          <img src="assets/figures/map-wgbary-t5.webp" alt="WassersteinGrad barycenter attribution at t+5: a single broad, coherent region of influence near the Atlantic coastline." width="660" height="526" loading="lazy" decoding="async" data-compare="top" class="top-layer">
+          <span class="compare-tag l">SmoothGrad</span>
+          <span class="compare-tag r">WG<sub>Bary</sub></span>
+          <div class="compare-handle" aria-hidden="true"></div>
+        </div>
+        <p class="caption">Lead time <span class="math">t</span>+5, autoregressive. Use the arrow keys when focused.</p>
+      </div>
+      <div>
+        <h4>What changes at longer lead times</h4>
+        <p style="font-size:.93rem;color:var(--ink-2)">At <span class="math">t</span>+5 the differences sharpen. BaseGrad and SmoothGrad remain dominated by incoherent patterns with no stable spatial organisation.</p>
+        <p style="font-size:.93rem;color:var(--ink-2)">WG<sub>Bary</sub> keeps producing a geographically coherent attribution. Its support does broaden relative to <span class="math">t</span>+1 — which is the honest answer: uncertainty genuinely is larger at longer horizons.</p>
+        <p style="font-size:.93rem;color:var(--ink-2)">WG<sub>Bary×Grad</sub> instead yields a sparser attribution concentrated near the Atlantic coastline, highlighting the dominant contributing regions.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================== INTERPRETATION ========= -->
+<section id="meaning">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">08 — Interpretation</p>
+      <h2>Why this should change how you explain a physical model.</h2>
+    </div>
+
+    <div class="cards cards-3" data-reveal>
+      <div class="card">
+        <span class="card-num">For forecasters</span>
+        <h4>An explanation you can act on</h4>
+        <p>A map that reports influence 100&nbsp;km from where the model actually attends is worse than no map — it invites the wrong operational conclusion. Alignment between where a model attends and where its explanation says it attends is a precondition for trust, not a nice-to-have.</p>
+      </div>
+      <div class="card">
+        <span class="card-num">For XAI</span>
+        <h4>Pointwise averaging encodes an assumption</h4>
+        <p>Every smoothing method that averages perturbed attributions assumes the perturbation acts on amplitude. On data with continuous structural geometry and advective movement, that assumption is simply false — and the aggregation operator, not the sampling, is what needs replacing.</p>
+      </div>
+      <div class="card">
+        <span class="card-num">For the transfer</span>
+        <h4>Vision methods don't port for free</h4>
+        <p>An invitation to reconsider the direct transfer of XAI methodology from computer vision to the physical sciences, where spatial structure and physical causality impose fundamentally different requirements on explanation quality.</p>
+      </div>
+    </div>
+
+    <div class="section-head" data-reveal style="margin-top:clamp(3rem,6vw,4.5rem)">
+      <h3>A sanity check the method passes</h3>
+      <p>Summarising each attribution map by its weighted barycenter, weighted covariance, and 95% confidence ellipse recovers a known physical fact — without being told it.</p>
+    </div>
+
+    <figure class="fig" data-reveal>
+      <img src="assets/figures/receptive-field-altitude.webp" alt="Four attribution maps over France for zonal wind at 250, 500 and 850 hPa and at 10 metres, each overlaid with a red 95 percent influence ellipse. The ellipses shrink monotonically as altitude decreases." width="2000" height="450" loading="lazy" decoding="async">
+      <figcaption><span class="fig-label">Physical validation</span>Ellipse area falls monotonically with altitude — 0.37 at <span class="math">u</span>&nbsp;250&nbsp;hPa, 0.27 at 500&nbsp;hPa, 0.15 at 850&nbsp;hPa, 0.10 at 10&nbsp;m wind. <b>Effective receptive fields expand with altitude</b>, consistent with upper-level flow steering precipitation over longer distances.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ================================================ LIMITATIONS =========== -->
+<section id="limitations" class="band">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">09 — Limitations &amp; what's next</p>
+      <h2>What this work does not yet settle.</h2>
+    </div>
+
+    <div class="lim-grid" data-reveal>
+      <div>
+        <h4 style="margin-bottom:1rem">Limitations</h4>
+        <ul class="lim-list">
+          <li><b>One model, one dataset.</b> Evaluation focuses on UNetRPP with pretrained, meteorologist-validated parameters. The mechanistic analysis applies to any model containing convolution/pooling or Transformer layers, but generalisation to other state-of-the-art architectures and spatial domains remains to be shown.</li>
+          <li><b>The noise is physically uninformed.</b> Standard SmoothGrad and our method both perturb inputs with white Gaussian noise, which creates atmospheric states that cannot physically exist.</li>
+          <li><b>WG<sub>Bary</sub> is sign-free.</b> The barycenter represents the geometric uncertainty of displaced attributions, so it is less sparse than the alternatives and discards the direction of influence. WG<sub>Bary×Grad</sub> trades geometric interpretability back for sparsity and sign.</li>
+          <li><b>Quality is measured by proxy.</b> The metrics are proxies, not evidence that an operational decision actually improves.</li>
         </ul>
       </div>
-      <div class="cite-block">
-        <h3 class="label">Acknowledgements</h3>
-        <p>This work has benefited from the AI Interdisciplinary Institute <a href="https://aniti.univ-toulouse.fr/">ANITI</a>. ANITI is funded by the France 2030 program under the Grant agreement n°ANR-23-IACL-0002.</p>
+      <div>
+        <h4 style="margin-bottom:1rem">Future work</h4>
+        <ul class="lim-list">
+          <li><b>Physically admissible perturbations.</b> Replace isotropic Gaussian noise with perturbations constrained by climatology, so the perturbed samples remain physically realisable atmospheric states.</li>
+          <li><b>A metric for physical plausibility.</b> The open problem: how do you <em>quantify</em> that an attribution map is physically right, rather than merely stable?</li>
+          <li><b>Meteorological case studies.</b> Move from benchmark events to real storms and extremes.</li>
+          <li><b>Global, graph-based models.</b> Ongoing work extends the framework to ECMWF's AIFS through an Anemoi plugin, running against an operational checkpoint with attributions through the multi-step rollout.</li>
+        </ul>
       </div>
+    </div>
+
+    <div class="section-head" data-reveal style="margin-top:clamp(3rem,6vw,4.5rem)">
+      <h3>Early signal on a global model</h3>
+      <p>Preliminary, on a different architecture, resolution and lead time — a graph encoder–processor–decoder at ~0.25° with 6-hour steps, attributing 2&nbsp;m temperature over Paris to 10&nbsp;m zonal wind at 12&nbsp;h.</p>
+    </div>
+
+    <div class="cards cards-2" data-reveal style="background:var(--rule)">
+      <figure class="card" style="padding:0">
+        <img src="assets/figures/anemoi-smoothgrad.webp" alt="SmoothGrad attribution on the AIFS global model: fragmented, sign-alternating red and blue speckle across western Europe with no stable spatial organisation." width="1100" height="630" loading="lazy" decoding="async">
+        <figcaption style="padding:1rem 1.2rem;font-size:.83rem;color:var(--ink-3)"><b style="font-family:var(--mono);font-size:.75rem;color:var(--ink-2)">SmoothGrad</b> — fragmented, sign-alternating speckle, no stable spatial organisation.</figcaption>
+      </figure>
+      <figure class="card" style="padding:0">
+        <img src="assets/figures/anemoi-wassersteingrad.webp" alt="WassersteinGrad attribution on the AIFS global model: a single bright coherent region of influence stretching across northern France and the Channel." width="1100" height="660" loading="lazy" decoding="async">
+        <figcaption style="padding:1rem 1.2rem;font-size:.83rem;color:var(--ink-3)"><b style="font-family:var(--mono);font-size:.75rem;color:var(--red)">WG<sub>Bary</sub></b> — a single coherent region of influence.</figcaption>
+      </figure>
+    </div>
+    <p class="caption">Preliminary result over 10 events at 12&nbsp;h lead time: faithfulness 0.796 vs 0.716, LLE<sub>cos</sub> 0.00009 vs 0.00071 for SmoothGrad. Not part of the paper's evaluation — reported here as an indication that the effect is not specific to the regional model.</p>
+  </div>
+</section>
+
+<!-- ====================================================== CITE ============ -->
+<section id="cite">
+  <div class="wrap">
+    <div class="section-head" data-reveal>
+      <p class="eyebrow">10 — Citation</p>
+      <h2>BibTeX</h2>
+    </div>
+
+    <div class="bib" data-reveal>
+      <button class="copy-btn" type="button" id="copy-bib" data-target="bibtex">Copy</button>
+      <pre id="bibtex"><code>@article{essafouri2026wassersteingrad,
+  title   = {Explanation of Dynamic Physical Field Predictions using
+             WassersteinGrad: Application to Autoregressive Weather Forecasting},
+  author  = {Essafouri, Younes and Raynaud, Laure and
+             Drozda, Luciano and Risser, Laurent},
+  journal = {arXiv preprint arXiv:2604.22580},
+  year    = {2026}
+}</code></pre>
+    </div>
+
+    <div class="callout" data-reveal>
+      <span class="who">Acknowledgements</span>
+      <p>This work has benefited from the AI Interdisciplinary Institute ANITI. ANITI is funded by the France 2030 program under the Grant agreement n°ANR-23-IACL-0002.</p>
     </div>
   </div>
 </section>
 
 </main>
 
-<footer class="site-foot">
+<!-- ==================================================== FOOTER ============ -->
+<footer class="footer">
   <div class="wrap">
-    <span>WassersteinGrad · Accepted at NeurIPS 2026 · Figures reproduced from the paper</span>
-    <a href="https://younesessafouri.github.io/Portfolio/">← Younes Essafouri</a>
+    <div class="footer-grid">
+      <div>
+        <h5>Paper</h5>
+        <ul>
+          <li><a href="https://arxiv.org/abs/2604.22580">arXiv:2604.22580</a></li>
+          <li><a href="https://arxiv.org/abs/2604.22580">PDF</a></li>
+          <li><a href="#cite">BibTeX</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Code &amp; data</h5>
+        <ul>
+          <li><a href="https://github.com/meteofrance/py4cast">Py4cast</a></li>
+          <li><a href="https://huggingface.co/datasets/meteofrance/titan">TITAN dataset</a></li>
+          <li><a href="https://github.com/ecmwf/anemoi-core">Anemoi</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Authors</h5>
+        <ul>
+          <li><a href="mailto:younes.essafouri@cnrs.fr">Younes Essafouri</a></li>
+          <li><a href="mailto:laure.raynaud@meteo.fr">Laure Raynaud</a></li>
+          <li><a href="mailto:drozda@cerfacs.fr">Luciano Drozda</a></li>
+          <li><a href="mailto:laurent.risser@cnrs.fr">Laurent Risser</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Institutions</h5>
+        <ul>
+          <li><a href="https://www.math.univ-toulouse.fr/">Institut de Mathématiques de Toulouse</a></li>
+          <li><a href="https://www.umr-cnrm.fr/">Météo-France / CNRM</a></li>
+          <li><a href="https://cerfacs.fr/">Cerfacs</a></li>
+          <li><a href="https://aniti.univ-toulouse.fr/">ANITI</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-base">
+      <p>Preprint under review · Figures reproduced from the paper and the associated presentation.</p>
+      <p><a href="https://younesessafouri.github.io/Portfolio/">← Younes Essafouri</a></p>
+    </div>
   </div>
 </footer>
 
-<script src="assets/js/main.js?v=20260924" defer></script>
+<script src="assets/js/main.js" defer></script>
 </body>
 </html>
