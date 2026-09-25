@@ -70,6 +70,7 @@
   };
 
   var barsBody = document.getElementById('bars-body');
+  var barsLead = document.getElementById('bars-lead');
 
   function label(name) {
     return name
@@ -103,6 +104,8 @@
              '</div>';
     }).join('');
 
+    if (barsLead) barsLead.textContent = lead === 't1' ? 't + 1' : 't + 5';
+
     if (!barsVisible) return;
     if (reduceMotion) paintBars();
     else requestAnimationFrame(function () { requestAnimationFrame(paintBars); });
@@ -123,11 +126,8 @@
     io.observe(barsSection);
   }
 
-  /* One lead time for the whole page: every t+1 / t+5 toggle, every
-     lead-dependent image and the bar chart follow the same state. */
   var currentLead = 't1';
-  var leadImgs = document.querySelectorAll('img[data-src-t1][data-src-t5]');
-  var leadNotes = document.querySelectorAll('[data-lead-show]');
+  var mapImgs = document.querySelectorAll('#teaser-grid img[data-map]');
   var segButtons = document.querySelectorAll('.seg button[data-lead]');
 
   function setLead(lead) {
@@ -138,24 +138,15 @@
       b.setAttribute('aria-pressed', String(b.dataset.lead === lead));
     });
 
-    Array.prototype.forEach.call(leadNotes, function (el) {
-      el.hidden = el.getAttribute('data-lead-show') !== lead;
-    });
-
-    Array.prototype.forEach.call(leadImgs, function (img) {
-      var next = img.getAttribute('data-src-' + lead);
-      var alt = img.getAttribute('data-alt-' + lead);
+    Array.prototype.forEach.call(mapImgs, function (img) {
+      var next = 'assets/figures/map-' + img.dataset.map + '-' + lead + '.webp';
       if (img.getAttribute('src') === next) return;
-      var swap = function () {
-        img.src = next;
-        if (alt) img.alt = alt;
-      };
-      if (reduceMotion) { swap(); return; }
+      if (reduceMotion) { img.src = next; return; }
       var pre = new Image();
       pre.onload = function () {
         img.style.opacity = '0';
         setTimeout(function () {
-          swap();
+          img.src = next;
           img.style.opacity = '1';
         }, 160);
       };
@@ -216,93 +207,7 @@
       else if (e.key === 'End')        { setPos(100); e.preventDefault(); }
     });
 
-    /* Start with the handle across the WG_Bary region over Brittany */
-    setPos(32);
-  }
-
-  /* ------------------------------------------------ pressure-level explorer */
-  /* 95% ellipses fitted to the panels of the altitude figure, in the
-     457 x 366 pixel frame of the level-u-*.webp crops. rx is the minor
-     semi-axis, rotated by `a` degrees (clockwise, image coordinates). */
-  var LEVELS = {
-    '250': { cx: 227.5, cy: 128.9, rx: 49.1, ry: 59.1, a: 57.4,
-             label: '250 hPa', desc: 'a broad 95% ellipse over northern France' },
-    '500': { cx: 228.0, cy: 128.3, rx: 43.6, ry: 59.4, a: 78.8,
-             label: '500 hPa', desc: 'a slightly smaller, more elongated ellipse' },
-    '850': { cx: 226.0, cy: 129.6, rx: 33.3, ry: 48.1, a: 74.2,
-             label: '850 hPa', desc: 'a clearly smaller ellipse around the target' },
-    '10m': { cx: 233.9, cy: 125.1, rx: 14.1, ry: 20.2, a: 61.0,
-             label: '10 m', desc: 'a small ellipse close to the target' }
-  };
-
-  var stage = document.getElementById('level-stage');
-  var ell = document.getElementById('level-ellipse');
-  var levelBtns = Array.prototype.slice.call(document.querySelectorAll('.level-picker button[data-level]'));
-
-  if (stage && ell && levelBtns.length) {
-    var levelImgs = stage.querySelectorAll('img[data-level]');
-    var shown = LEVELS['250'];
-    var anim = null;
-
-    var drawEllipse = function (e) {
-      ell.setAttribute('cx', e.cx.toFixed(2));
-      ell.setAttribute('cy', e.cy.toFixed(2));
-      ell.setAttribute('rx', e.rx.toFixed(2));
-      ell.setAttribute('ry', e.ry.toFixed(2));
-      ell.setAttribute('transform',
-        'rotate(' + e.a.toFixed(2) + ' ' + e.cx.toFixed(2) + ' ' + e.cy.toFixed(2) + ')');
-    };
-
-    var morphTo = function (target) {
-      if (anim) cancelAnimationFrame(anim);
-      var from = shown;
-      if (reduceMotion) { shown = target; drawEllipse(target); return; }
-      var t0 = null, dur = 520;
-      var step = function (now) {
-        if (t0 === null) t0 = now;
-        var p = Math.min(1, (now - t0) / dur);
-        var k = p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-        var cur = {};
-        ['cx', 'cy', 'rx', 'ry', 'a'].forEach(function (key) {
-          cur[key] = from[key] + (target[key] - from[key]) * k;
-        });
-        shown = cur;
-        drawEllipse(cur);
-        anim = p < 1 ? requestAnimationFrame(step) : null;
-      };
-      anim = requestAnimationFrame(step);
-    };
-
-    var selectLevel = function (id, focus) {
-      var lv = LEVELS[id];
-      if (!lv) return;
-      levelBtns.forEach(function (b) {
-        var on = b.dataset.level === id;
-        b.setAttribute('aria-checked', String(on));
-        b.tabIndex = on ? 0 : -1;
-        if (on && focus) b.focus();
-      });
-      Array.prototype.forEach.call(levelImgs, function (img) {
-        img.classList.toggle('is-on', img.dataset.level === id);
-      });
-      stage.setAttribute('aria-label',
-        'Attribution map for zonal wind at ' + lv.label + ', with ' + lv.desc + '.');
-      morphTo(lv);
-    };
-
-    levelBtns.forEach(function (b, i) {
-      b.addEventListener('click', function () { selectLevel(b.dataset.level, false); });
-      b.addEventListener('keydown', function (e) {
-        var j = null;
-        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') j = Math.min(levelBtns.length - 1, i + 1);
-        else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') j = Math.max(0, i - 1);
-        else if (e.key === 'Home') j = 0;
-        else if (e.key === 'End') j = levelBtns.length - 1;
-        if (j === null) return;
-        e.preventDefault();
-        selectLevel(levelBtns[j].dataset.level, true);
-      });
-    });
+    setPos(50);
   }
 
   /* ------------------------------------------------------------ copy bib */
