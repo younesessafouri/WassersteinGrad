@@ -160,13 +160,13 @@
 </section>
 
 <!-- ====================================================== TL;DR =========== -->
-<section class="tldr band">
+<!-- <section class="tldr band">
   <div class="wrap">
     <div class="tldr-inner" data-reveal>
       <p>Perturbing the input of a weather model doesn't make its explanation <span class="hi">noisier</span> — it makes it <span class="hi">move</span>. So we stop averaging explanations pointwise and start averaging them <span class="hi-2">geometrically</span>.</p>
     </div>
   </div>
-</section>
+</section> -->
 
 <!-- ==================================================== PROBLEM =========== -->
 <section id="problem">
@@ -185,8 +185,8 @@
       </div>
       <div class="card">
         <span class="card-num">Why it's hard</span>
-        <h4>XAI was built for photographs</h4>
-        <p>Gradient attribution methods assume a static image on a pixel grid. The atmosphere is a continuous, advective, physically constrained field — the assumptions do not transfer for free.</p>
+        <h4>XAI was built for static images</h4>
+        <p>Gradient attribution methods assume a static image on a pixel grid. The atmosphere is a continuous, advective, physically constrained field.</p>
       </div>
       <div class="card">
         <span class="card-num">Why it compounds</span>
@@ -197,7 +197,7 @@
 
     <figure class="fig" data-reveal>
       <img src="assets/figures/rollout.webp" alt="Diagram of autoregressive prediction: a stack of 21 atmospheric channels at time t is passed through the forecasting model f repeatedly, producing states at t+1 through t+T." width="1500" height="501" loading="lazy" decoding="async">
-      <figcaption><span class="fig-label">Figure 1a</span>Autoregressive use of a neural forecasting model <span class="math">f</span>, producing a sequence of physical fields — here regional atmospheric states with <span class="math">C</span> = 21 channels — at successive lead times.</figcaption>
+      <figcaption><span class="fig-label">Figure 1a</span>Autoregressive use of a neural forecasting model <span class="math">f</span>, producing a sequence of physical fields, here regional atmospheric states with <span class="math">C</span> = 21 channels at successive lead times.</figcaption>
     </figure>
 
     <div class="section-head" data-reveal style="margin-top:clamp(3rem,6vw,4.5rem)">
@@ -218,7 +218,7 @@
     <div class="section-head" data-reveal>
       <p class="eyebrow">02 — The failure mode</p>
       <h2>Displacement, not noise.</h2>
-      <p class="lede">A deep network is locally very rough, so a single gradient says more about that roughness than about the structure we want to see. Smoothing methods fix this by sampling a neighbourhood and averaging — and that averaging step is where things go wrong on physical fields.</p>
+      <p class="lede">A deep network is locally very rough, so a single gradient says more about that roughness than about the structure we want to see. Smoothing methods fix this by sampling a neighbourhood and averaging.</p>
     </div>
 
     <figure class="fig fig-plain" data-reveal>
@@ -240,7 +240,7 @@
       <div class="reality">
         <span class="tag">What actually happens</span>
         <h4>Noise perturbs position</h4>
-        <p>The maps are geometrically <em class="term">displaced copies</em> of each other. Averaging spatially misaligned features does not denoise them — it blurs them, and smears mass across locations where nothing happened.</p>
+        <p>The maps are geometrically <em class="term">displaced copies</em> of each other. Averaging spatially misaligned features does not denoise them, it blurs them, and smears mass across locations where nothing happened.</p>
       </div>
     </div>
 
@@ -266,7 +266,7 @@
         <span class="n">03</span>
         <img src="assets/figures/noise-transport-flux.webp" alt="Optimal transport mass flux map showing a structured dipole: green regions where attribution mass was sent and red regions where it was received, separated by roughly 200 kilometres." width="888" height="392" loading="lazy" decoding="async">
         <h4>Transport flux</h4>
-        <p>Mass excavated from true locations, deposited nearby — a structured dipole, not random amplitude noise.</p>
+        <p>Mass excavated from true locations, deposited nearby: a structured dipole, not random amplitude noise.</p>
         <div class="legend-row">
           <span><i style="background:#e8756b"></i>Received mass</span>
           <span><i style="background:#4f8b52"></i>Sent mass</span>
@@ -283,7 +283,7 @@
     <div class="stats" data-reveal>
       <div class="stat is-red">
         <span class="n">10–15 <span style="font-size:.42em;font-weight:500">km</span></span>
-        <p class="k">Average <b>centroid advection</b> of the attribution map below <span class="math">σ</span> = 0.4 — while model performance degrades by less than 1%.</p>
+        <p class="k">Average <b>centroid advection</b> of the attribution map below <span class="math">σ</span> = 0.4 while model performance degrades by less than 1%.</p>
       </div>
       <div class="stat is-red">
         <span class="n">~115 <span style="font-size:.42em;font-weight:500">km</span></span>
@@ -326,17 +326,17 @@
         <span class="card-num">CNNs · convolution + pooling</span>
         <h4>Max pooling routes gradients to the argmax</h4>
         <p>Pooling sends gradient strictly to the argmax coordinate within each local window. If a noise spike in a background region exceeds the true signal, the argmax operator shifts — and the backpropagated gradient is <strong>physically relocated</strong> to the noise spike's coordinate.</p>
-        <p>Separately, under Gaussian noise of standard deviation <span class="math">s</span>, the expected ReLU output is <span class="math">z</span>&nbsp;Φ(<span class="math">z</span>/<span class="math">s</span>) + <span class="math">s</span>&nbsp;φ(<span class="math">z</span>/<span class="math">s</span>) — and that second term is strictly positive even when <span class="math">z</span> &lt; 0. Neurons that should be inactive fire anyway. These <strong>phantom activations</strong> unblock gradient paths through regions irrelevant to the original feature geometry.</p>
+        <p>Separately, under Gaussian noise of standard deviation <span class="math">s</span>, the expected ReLU output is <span class="math">z</span>&nbsp;Φ(<span class="math">z</span>/<span class="math">s</span>) + <span class="math">s</span>&nbsp;φ(<span class="math">z</span>/<span class="math">s</span>) and that second term is strictly positive even when <span class="math">z</span> &lt; 0. Neurons that should be inactive fire anyway. These <strong>phantom activations</strong> unblock gradient paths through regions irrelevant to the original feature geometry.</p>
       </div>
       <div class="card">
         <span class="card-num">Transformers · self-attention</span>
         <h4>Attention routing is metastable</h4>
         <p>The forward-pass attention matrix <span class="math">A</span> appears as a direct multiplicative factor in the backward pass, so the spatial structure of the attribution is anchored to the token routing <span class="math">A</span> induces. Any perturbation that alters <span class="math">A</span> alters the map.</p>
-        <p>Modelling tokens as an interacting particle system, self-attention is <strong>non-Lipschitz</strong> and its interaction energy admits multiple local maxima. Different noise draws can therefore drive the system into <strong>distinct basins of attraction</strong> — qualitatively different clusterings, not perturbed versions of one.</p>
+        <p>Modelling tokens as an interacting particle system, self-attention is <strong>non-Lipschitz</strong> and its interaction energy admits multiple local maxima. Different noise draws can therefore drive the system into <strong>distinct basins of attraction</strong> qualitatively different clusterings, not perturbed versions of one.</p>
       </div>
     </div>
 
-    <p class="caption" style="color:#7f8b9b;max-width:70ch" data-reveal>Consequence: the <span class="math">N</span> maps <span class="math">{G<sub>i</sub>}</span> that SmoothGrad averages are not noisy estimates of a fixed attribution. They are geometrically displaced versions of it — and pointwise averaging is the wrong operation on that set.</p>
+    <p class="caption" style="color:#7f8b9b;max-width:70ch" data-reveal>Consequence: the <span class="math">N</span> maps <span class="math">{G<sub>i</sub>}</span> that SmoothGrad averages are not noisy estimates of a fixed attribution. They are geometrically displaced versions of it.</p>
   </div>
 </section>
 
@@ -385,7 +385,7 @@
 
     <div class="callout" data-reveal>
       <span class="who">The move</span>
-      <p>Map each attribution map to a spatial probability measure <span class="math">μ<sub>i</sub></span> ∝ |<span class="math">G<sub>i</sub></span>| — absolute value, then <span class="math">ℓ</span><sub>1</sub> normalisation, which preserves the magnitude of both positive and negative evidence while satisfying the positivity and mass-conservation constraints of optimal transport. Then replace the pointwise mean with the <strong>Fréchet mean in Wasserstein space</strong>: <span class="math">μ*</span> = arg&nbsp;min<sub>μ</sub> Σ<sub>i</sub> <span class="math">W</span><sub>2</sub><sup>2</sup>(μ, μ<sub>i</sub>).</p>
+      <p>Map each attribution map to a spatial probability measure <span class="math">μ<sub>i</sub></span> ∝ |<span class="math">G<sub>i</sub></span>, then <span class="math">ℓ</span><sub>1</sub> normalisation, which preserves the magnitude of both positive and negative evidence while satisfying the positivity and mass-conservation constraints of optimal transport. Then replace the pointwise mean with the <strong>Fréchet mean in Wasserstein space</strong>: <span class="math">μ*</span> = arg&nbsp;min<sub>μ</sub> Σ<sub>i</sub> <span class="math">W</span><sub>2</sub><sup>2</sup>(μ, μ<sub>i</sub>).</p>
     </div>
   </div>
 </section>
@@ -461,7 +461,7 @@
       <div data-reveal>
         <dl class="kv">
           <dt>Dataset</dt>
-          <dd><b>TITAN</b> — derived from Météo-France's operational <b>AROME</b> limited-area model.</dd>
+          <dd><b>TITAN</b> derived from Météo-France's operational <b>AROME</b> limited-area model.</dd>
           <dt>Resolution</dt>
           <dd>0.025° ≈ <b>2.5 km</b>, regular lat–lon grid, <b>1-hour</b> analyses.</dd>
           <dt>Domain</dt>
@@ -471,7 +471,7 @@
           <dt>Splits</dt>
           <dd>Train 2020–2022 (1&nbsp;h step); test 2023 (3&nbsp;h step).</dd>
           <dt>Explained pair</dt>
-          <dd>Total surface precipitation (<code>aro_tp_0m</code>) over a Paris ROI, with respect to zonal wind at 250&nbsp;hPa (<code>aro_u_250hpa</code>) — a canonical jet-stream / precipitation link.</dd>
+          <dd>Total surface precipitation (<code>aro_tp_0m</code>) over a Paris ROI, with respect to zonal wind at 250&nbsp;hPa (<code>aro_u_250hpa</code>): a canonical jet-stream / precipitation link.</dd>
           <dt>Sampling</dt>
           <dd><span class="math">N</span> = 20 perturbed samples, <span class="math">σ</span> = 0.2 × (max <span class="math">x<sub>t</sub></span> − min <span class="math">x<sub>t</sub></span>), Sinkhorn <span class="math">λ</span> = 0.001, seed 42.</dd>
           <dt>Evaluation</dt>
@@ -500,7 +500,7 @@
       <div class="card">
         <span class="card-num">Robustness ↓</span>
         <h4>Local Lipschitz estimate</h4>
-        <p><span class="math">LLE<sub>ℓ2</sub></span> measures amplitude sensitivity to bounded input perturbation. <span class="math">LLE<sub>cos</sub></span> normalises the maps first, so it measures <strong>structural</strong> — spatial pattern — change instead.</p>
+        <p><span class="math">LLE<sub>ℓ2</sub></span> measures amplitude sensitivity to bounded input perturbation. <span class="math">LLE<sub>cos</sub></span> normalises the maps first, so it measures <strong>structural</strong> and spatial pattern change instead.</p>
       </div>
       <div class="card">
         <span class="card-num">Complexity ↑</span>
@@ -536,11 +536,11 @@
       </div>
       <div class="stat is-blue">
         <span class="n">0.815<sub></sub></span>
-        <p class="k">Highest <b>faithfulness</b> (ROAD) at <span class="math">t</span>+1, and again at <span class="math">t</span>+5 with 0.762 — surpassing all baselines at both lead times.</p>
+        <p class="k">Highest <b>faithfulness</b> (ROAD) at <span class="math">t</span>+1, and again at <span class="math">t</span>+5 with 0.762 surpassing all baselines at both lead times.</p>
       </div>
       <div class="stat">
         <span class="n">0.750</span>
-        <p class="k">Best <b>sparsity</b> (Gini) at <span class="math">t</span>+5 for WG<sub>Bary×Grad</sub>, second-best at <span class="math">t</span>+1 — sign-aware and spatially precise.</p>
+        <p class="k">Best <b>sparsity</b> (Gini) at <span class="math">t</span>+5 for WG<sub>Bary×Grad</sub>, second-best at <span class="math">t</span>+1.</p>
       </div>
     </div>
 
@@ -622,7 +622,7 @@
       <div>
         <h4>What changes at longer lead times</h4>
         <p style="font-size:.93rem;color:var(--ink-2)">At <span class="math">t</span>+5 the differences sharpen. BaseGrad and SmoothGrad remain dominated by incoherent patterns with no stable spatial organisation.</p>
-        <p style="font-size:.93rem;color:var(--ink-2)">WG<sub>Bary</sub> keeps producing a geographically coherent attribution. Its support does broaden relative to <span class="math">t</span>+1 — which is the honest answer: uncertainty genuinely is larger at longer horizons.</p>
+        <p style="font-size:.93rem;color:var(--ink-2)">WG<sub>Bary</sub> keeps producing a geographically coherent attribution. Its support does broaden relative to <span class="math">t</span>+1.</p>
         <p style="font-size:.93rem;color:var(--ink-2)">WG<sub>Bary×Grad</sub> instead yields a sparser attribution concentrated near the Atlantic coastline, highlighting the dominant contributing regions.</p>
       </div>
     </div>
@@ -630,7 +630,7 @@
 </section>
 
 <!-- =============================================== INTERPRETATION ========= -->
-<section id="meaning">
+<!-- <section id="meaning">
   <div class="wrap">
     <div class="section-head" data-reveal>
       <p class="eyebrow">08 — Interpretation</p>
@@ -665,7 +665,7 @@
       <figcaption><span class="fig-label">Physical validation</span>Ellipse area falls monotonically with altitude — 0.37 at <span class="math">u</span>&nbsp;250&nbsp;hPa, 0.27 at 500&nbsp;hPa, 0.15 at 850&nbsp;hPa, 0.10 at 10&nbsp;m wind. <b>Effective receptive fields expand with altitude</b>, consistent with upper-level flow steering precipitation over longer distances.</figcaption>
     </figure>
   </div>
-</section>
+</section> -->
 
 <!-- ================================================ LIMITATIONS =========== -->
 <section id="limitations" class="band">
@@ -698,7 +698,7 @@
 
     <div class="section-head" data-reveal style="margin-top:clamp(3rem,6vw,4.5rem)">
       <h3>Early signal on a global model</h3>
-      <p>Preliminary, on a different architecture, resolution and lead time — a graph encoder–processor–decoder at ~0.25° with 6-hour steps, attributing 2&nbsp;m temperature over Paris to 10&nbsp;m zonal wind at 12&nbsp;h.</p>
+      <p>Preliminary, on a different architecture, resolution and lead time, a graph encoder–processor–decoder at ~0.25° with 6-hour steps, attributing 2&nbsp;m temperature over Paris to 10&nbsp;m zonal wind at 12&nbsp;h.</p>
     </div>
 
     <div class="cards cards-2" data-reveal style="background:var(--rule)">
@@ -711,7 +711,7 @@
         <figcaption style="padding:1rem 1.2rem;font-size:.83rem;color:var(--ink-3)"><b style="font-family:var(--mono);font-size:.75rem;color:var(--red)">WG<sub>Bary</sub></b> — a single coherent region of influence.</figcaption>
       </figure>
     </div>
-    <p class="caption">Preliminary result over 10 events at 12&nbsp;h lead time: faithfulness 0.796 vs 0.716, LLE<sub>cos</sub> 0.00009 vs 0.00071 for SmoothGrad. Not part of the paper's evaluation — reported here as an indication that the effect is not specific to the regional model.</p>
+    <p class="caption">Preliminary result over 10 events at 12&nbsp;h lead time: faithfulness 0.796 vs 0.716, LLE<sub>cos</sub> 0.00009 vs 0.00071 for SmoothGrad.</p>
   </div>
 </section>
 
