@@ -37,7 +37,7 @@ All asset paths are relative, so the site also works from a subdirectory.
 └── assets/
     ├── css/style.css
     ├── js/main.js          # progressive enhancement only — page works without it
-    └── figures/*.webp      # 30 files, ~1.1 MB total
+    └── figures/*.webp      # 30 files, ~0.9 MB total
 ```
 
 ## Figures
@@ -52,13 +52,24 @@ zoom, and embedded rasters are pulled at native resolution.
 | `map-{basegrad,smoothgrad,wgbary,wgbarygrad}-{t1,t5}` | Paper Figure 2 |
 | `domain-map` | Paper Figure 3 |
 | `displacement-t1`, `displacement-t5` | Paper Figure 4 |
-| `shattered-gradients` | Slides, p. 12 |
-| `receptive-field-altitude` | Slides, p. 15 |
+| `level-u-{250hpa,500hpa,850hpa,10m}` | Slides, p. 15, one crop per panel (axes frame only, pixel-aligned) |
 | `barycenter-input-1..8`, `barycenter-{pointwise-mean,wasserstein}` | Slides, p. 19 |
-| `anemoi-{smoothgrad,wassersteingrad}` | Slides, p. 24 (preliminary, labelled as such on the page) |
+
+The pressure-level explorer draws its ellipses as SVG over the `level-u-*`
+crops. Their centre, semi-axes and angle were fitted to the red 95% ellipses
+already drawn in the slide figure, so the overlay lands on the drawn ellipse
+at each level (values in `assets/js/main.js` and in the markup).
 
 All quantitative claims come from Table 1, Section 4.2, or Appendix C.2/E.2 of
 the paper, or from the slides — no numbers are estimated off a plot.
+
+## Page structure
+
+Hero and teaser → 01 problem → 02 why averaging fails → 03 method →
+04 evidence → 05 results → 06 physical coherence → 07 paper, code & citation.
+Exact metrics (Table 1), the experimental setup and the mechanism analysis sit
+in collapsed `<details>` panels. One lead-time state drives every t + 1 / t + 5
+toggle on the page.
 
 ## Before publishing
 
